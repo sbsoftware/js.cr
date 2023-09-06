@@ -1,6 +1,6 @@
-require "./spec_helper"
+require "../spec_helper"
 
-module Js::ModuleSpec
+module JsModule::BasicSpec
   class MyModule < JsModule
     function :module_func1 do |foo|
       console.log(foo)
