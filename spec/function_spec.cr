@@ -3,8 +3,15 @@ require "./spec_helper"
 module Js::FunctionSpec
   class FunctionCode < JsFunction
     def_to_js :my_func do |foo, bar|
-      console.log(foo);
-      console.log(bar);
+      console.log(foo)
+      OtherFunction.to_js_call("bla")
+      console.log(bar)
+    end
+  end
+
+  class OtherFunction < JsFunction
+    def_to_js do |meh|
+      console.log(meh)
     end
   end
 
@@ -13,6 +20,7 @@ module Js::FunctionSpec
       expected = <<-JS.squish
       function my_func(foo, bar) {
         console.log(foo);
+        other_function("bla");
         console.log(bar);
       }
       JS

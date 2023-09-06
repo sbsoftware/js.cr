@@ -22,6 +22,9 @@ abstract class JsCode
   macro _eval_js(io, &blk)
     {% if blk.body.is_a?(Call) && blk.body.name.stringify == "_literal_js" %}
       {{io}} << {{blk.body.args.first}}
+    {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_call" %}
+      {{io}} << {{blk.body}}
+      {{io}} << ";"
     {% elsif blk.body.is_a?(Call) %}
       {{io}} << {{blk.body.stringify}}
       {{io}} << ";"
