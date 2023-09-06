@@ -1,18 +1,15 @@
 abstract class JsFunction
-  macro to_js_call(*args)
+  def self.to_js_call(*args)
     String.build do |str|
-      str << {{@type}}.function_name
+      str << function_name
       str << "("
-      {% for arg, index in args %}
-        {% if arg.is_a?(StringLiteral) %}
-          str << "\"{{arg.id}}\""
-        {% else %}
-          str << {{arg}}
-        {% end %}
-        {% if index < args.size - 1 %}
-          str << ", "
-        {% end %}
-      {% end %}
+      args.join(str, ", ") do |arg|
+        if arg.is_a?(String)
+          str << "\"#{arg}\""
+        else
+          str << arg
+        end
+      end
       str << ")"
     end
   end

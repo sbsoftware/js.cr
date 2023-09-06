@@ -1,15 +1,7 @@
 abstract class JsCode
   macro def_to_js(&blk)
     def self.to_js(io : IO)
-      {% if blk.body.is_a?(Expressions) %}
-        {% for exp in blk.body.expressions %}
-          JsCode._eval_js(io) do
-            {{exp}}
-          end
-        {% end %}
-      {% else %}
-        JsCode._eval_js(io) {{blk}}
-      {% end %}
+      JsCode._eval_js_block(io) {{blk}}
     end
 
     def self.to_js
@@ -17,6 +9,18 @@ abstract class JsCode
         to_js(str)
       end
     end
+  end
+
+  macro _eval_js_block(io, &blk)
+    {% if blk.body.is_a?(Expressions) %}
+      {% for exp in blk.body.expressions %}
+        JsCode._eval_js({{io}}) do
+          {{exp}}
+        end
+      {% end %}
+    {% else %}
+      JsCode._eval_js({{io}}) {{blk}}
+    {% end %}
   end
 
   macro _eval_js(io, &blk)
