@@ -1,12 +1,12 @@
 abstract class JsModule
-  @@functions = [] of JsFunction.class
+  @@js_functions = [] of JsFunction.class
 
-  macro function(name, &blk)
+  macro js_function(name, &blk)
     class {{name.id.stringify.camelcase.id}} < JsFunction
       def_to_js {{blk}}
     end
 
-    @@functions << {{name.id.stringify.camelcase.id}}
+    @@js_functions << {{name.id.stringify.camelcase.id}}
 
     def self.{{name.id}}
       {{name.id.stringify.camelcase.id}}
@@ -15,7 +15,7 @@ abstract class JsModule
 
   macro def_to_js(&blk)
     def self.to_js(io : IO)
-      @@functions.each do |func|
+      @@js_functions.each do |func|
         func.to_js(io)
       end
       JsCode._eval_js_block(io) {{blk}}

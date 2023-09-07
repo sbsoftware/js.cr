@@ -2,11 +2,11 @@ require "../spec_helper"
 
 module JsModule::BasicSpec
   class MyModule < JsModule
-    function :module_func1 do |foo|
+    js_function :module_func1 do |foo|
       console.log(foo)
     end
 
-    function :module_func2 do |bar|
+    js_function :module_func2 do |bar|
       console.log(bar)
     end
 
