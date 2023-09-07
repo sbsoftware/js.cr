@@ -29,8 +29,19 @@ abstract class JsCode
     {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_call" %}
       {{io}} << {{blk.body}}
       {{io}} << ";"
+    {% elsif blk.body.is_a?(Call) && blk.body.name.stringify.ends_with?("=") %}
+      {{io}} << {{blk.body.receiver.stringify}}
+      {{io}} << "."
+      {{io}} << {{blk.body.name.stringify[0..-2]}}
+      {{io}} << " = "
+      JsCode._eval_js({{io}}) do
+        {{blk.body.args.first}}
+      end
     {% elsif blk.body.is_a?(Call) %}
       {{io}} << {{blk.body.stringify}}
+      {% if blk.body.args.empty? %}
+        {{io}} << "()"
+      {% end %}
       {{io}} << ";"
     {% end %}
   end

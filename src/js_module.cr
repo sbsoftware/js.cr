@@ -1,5 +1,10 @@
 abstract class JsModule
+  @@js_imports = [] of String
   @@js_functions = [] of JsFunction.class
+
+  macro js_import(*names, from)
+    @@js_imports << "import { {{names.map(&.id).splat}} } from \"{{from.id}}\";"
+  end
 
   macro js_function(name, &blk)
     class {{name.id.stringify.camelcase.id}} < JsFunction
@@ -15,6 +20,7 @@ abstract class JsModule
 
   macro def_to_js(&blk)
     def self.to_js(io : IO)
+      @@js_imports.join(io, "\n")
       @@js_functions.each do |func|
         func.to_js(io)
       end
