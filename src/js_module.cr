@@ -12,9 +12,11 @@ abstract class JsModule
   end
 
   macro js_class(name, &blk)
-    class {{name.id}} < JsClass
-      {{blk.body}}
-    end
+    {% if blk %}
+      class {{name.id}} < JsClass
+        {{blk.body}}
+      end
+    {% end %}
 
     @@js_classes << {{name.id}}
   end
