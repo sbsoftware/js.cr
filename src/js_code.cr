@@ -40,11 +40,28 @@ abstract class JsCode
         {{blk.body.args.first}}
       end
     {% elsif blk.body.is_a?(Call) %}
-      {{io}} << {{blk.body.stringify}}
-      {% if blk.body.args.empty? %}
-        {{io}} << "()"
+      {{io}} << {{blk.body.receiver.stringify}}
+      {{io}} << "."
+      {{io}} << {{blk.body.name.stringify}}
+      {{io}} << "("
+      {% for arg, index in blk.body.args %}
+        JsCode._eval_js_arg({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          {{arg}}
+        end
+        {% if index < blk.body.args.size - 1 %}
+          {{io}} << ", "
+        {% end %}
       {% end %}
+      {{io}} << ")"
       {{io}} << ";"
+    {% else %}
+      {{io}} << {{blk.body.stringify}}
+    {% end %}
+  end
+
+  macro _eval_js_arg(io, &blk)
+    {% if blk.body.is_a?(Call) && (blk.body.name.stringify == "to_js_ref" || blk.body.name.stringify == "to_js_call") %}
+      {{io}} << {{blk.body}}
     {% else %}
       {{io}} << {{blk.body.stringify}}
     {% end %}
