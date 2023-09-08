@@ -1,9 +1,22 @@
+require "./js_code"
+require "./js_function"
+require "./js_class"
+
 abstract class JsModule
   @@js_imports = [] of String
+  @@js_classes = [] of JsClass.class
   @@js_functions = [] of JsFunction.class
 
   macro js_import(*names, from)
     @@js_imports << "import { {{names.map(&.id).splat}} } from \"{{from.id}}\";"
+  end
+
+  macro js_class(name, &blk)
+    class {{name.id}} < JsClass
+      {{blk.body}}
+    end
+
+    @@js_classes << {{name.id}}
   end
 
   macro js_function(name, &blk)
@@ -21,6 +34,9 @@ abstract class JsModule
   macro def_to_js(&blk)
     def self.to_js(io : IO)
       @@js_imports.join(io, "\n")
+      @@js_classes.each do |js_class|
+        js_class.to_js(io)
+      end
       @@js_functions.each do |func|
         func.to_js(io)
       end
