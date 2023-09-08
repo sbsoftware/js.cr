@@ -2,6 +2,7 @@ require "./js_code"
 
 abstract class JsClass
   @@js_extends : String?
+  @@static_properties = [] of String
   @@js_methods = [] of JsMethod.class
 
   def self.class_name
@@ -10,6 +11,10 @@ abstract class JsClass
 
   macro js_extends(name)
     @@js_extends = {{name.id.stringify}}
+  end
+
+  macro static(assignment)
+    @@static_properties << {{assignment.stringify}}
   end
 
   macro js_method(name, &blk)
@@ -32,6 +37,11 @@ abstract class JsClass
       io << @@js_extends
     end
     io << " {"
+    @@static_properties.each do |prop|
+      io << "static "
+      io << prop
+      io << ";"
+    end
     @@js_methods.each do |js_method|
       js_method.to_js(io)
     end
