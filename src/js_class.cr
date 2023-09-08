@@ -1,4 +1,5 @@
 require "./js_code"
+require "./js_method"
 
 abstract class JsClass
   @@js_extends : String?
