@@ -14,7 +14,7 @@ abstract class JsCode
   macro _eval_js_block(io, &blk)
     {% if blk.body.is_a?(Expressions) %}
       {% for exp in blk.body.expressions %}
-        JsCode._eval_js({{io}}) do
+        JsCode._eval_js({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{exp}}
         end
       {% end %}
@@ -34,7 +34,7 @@ abstract class JsCode
       {{io}} << "."
       {{io}} << {{blk.body.name.stringify[0..-2]}}
       {{io}} << " = "
-      JsCode._eval_js({{io}}) do
+      JsCode._eval_js({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
         {{blk.body.args.first}}
       end
     {% elsif blk.body.is_a?(Call) %}
@@ -43,6 +43,8 @@ abstract class JsCode
         {{io}} << "()"
       {% end %}
       {{io}} << ";"
+    {% else %}
+      {{io}} << {{blk.body.stringify}}
     {% end %}
   end
 end

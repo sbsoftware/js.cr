@@ -23,7 +23,7 @@ abstract class JsFunction
       {% end %}
     end
 
-    JsCode.def_to_js do {% !blk.args.empty? ? "|#{blk.args.splat}|".id : "".id %}
+    JsCode.def_to_js do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
       _literal_js("function #{function_name}({{blk.args.splat}}) {")
       {{blk.body}}
       _literal_js("}")
