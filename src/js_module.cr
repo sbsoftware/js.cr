@@ -8,7 +8,7 @@ abstract class JsModule
   @@js_functions = [] of JsFunction.class
 
   macro js_import(*names, from)
-    @@js_imports << "import { {{names.map(&.id).splat}} } from \"{{from.id}}\";"
+    @@js_imports << ("import { {{names.map(&.id).splat}} } from \"" + {{from}} + "\";")
   end
 
   macro js_class(name, &blk)
