@@ -29,6 +29,8 @@ abstract class JsCode
     {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_call" %}
       {{io}} << {{blk.body}}
       {{io}} << ";"
+    {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_ref" %}
+      {{io}} << {{blk.body}}
     {% elsif blk.body.is_a?(Call) && blk.body.name.stringify.ends_with?("=") %}
       {{io}} << {{blk.body.receiver.stringify}}
       {{io}} << "."
