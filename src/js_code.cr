@@ -52,7 +52,20 @@ abstract class JsCode
           {{io}} << ", "
         {% end %}
       {% end %}
+      {% if blk.body.block %}
+        {{io}} << "function("
+        {{io}} << {{blk.body.block.args.splat.stringify}}
+        {{io}} << ") {"
+        JsCode._eval_js_block({{io}}) {{blk.body.block}}
+        {{io}} << "}"
+      {% end %}
       {{io}} << ")"
+      {{io}} << ";"
+    {% elsif blk.body.is_a?(Assign) %}
+      {{io}} << "var "
+      {{io}} << {{blk.body.target.stringify}}
+      {{io}} << " = "
+      {{io}} << {{blk.body.value.stringify}}
       {{io}} << ";"
     {% else %}
       {{io}} << {{blk.body.stringify}}
