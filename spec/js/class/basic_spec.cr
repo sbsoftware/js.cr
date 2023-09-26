@@ -1,7 +1,7 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JsClass::BasicSpec
-  class MyClass < JsClass
+module JS::Class::BasicSpec
+  class MyClass < JS::Class
     js_extends Controller
 
     js_method :do_something do

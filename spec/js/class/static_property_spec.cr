@@ -1,7 +1,7 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JsClass::StaticPropertySpec
-  class MyClass < JsClass
+module JS::Class::StaticPropertySpec
+  class MyClass < JS::Class
     static things = ["one_thing", "another_thing"]
   end
 

@@ -1,7 +1,7 @@
-require "./spec_helper"
+require "../spec_helper"
 
-module Js::ForeachSpec
-  class MyJs < JsCode
+module JS::ForeachSpec
+  class MyJs < JS::Code
     def_to_js do
       arr = ["this", "is", "sparta"]
       arr.forEach do |item|

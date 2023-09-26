@@ -1,5 +1,5 @@
 require "spec"
-require "../src/*"
+require "../src/js"
 
 class String
   def squish

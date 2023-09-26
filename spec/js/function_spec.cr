@@ -1,7 +1,7 @@
-require "./spec_helper"
+require "../spec_helper"
 
-module Js::FunctionSpec
-  class FunctionCode < JsFunction
+module JS::FunctionSpec
+  class FunctionCode < JS::Function
     def_to_js :my_func do |foo, bar|
       console.log(foo)
       OtherFunction.to_js_call("bla")
@@ -9,7 +9,7 @@ module Js::FunctionSpec
     end
   end
 
-  class OtherFunction < JsFunction
+  class OtherFunction < JS::Function
     def_to_js do |meh|
       console.log(meh)
     end

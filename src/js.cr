@@ -1,1 +1,1 @@
-require "./js_module"
+require "./js/module"

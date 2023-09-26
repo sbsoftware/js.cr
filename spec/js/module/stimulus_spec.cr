@@ -1,7 +1,7 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JsModule::StimulusSpec
-  class MyModule < JsModule
+module JS::Module::StimulusSpec
+  class MyModule < JS::Module
     js_import Application, Controller, from: "/assets/stimulus.js"
 
     js_class MyController do
