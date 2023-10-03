@@ -106,3 +106,40 @@ end
 
 puts MyModule.to_js
 ```
+
+#### Imports
+
+To make modules useful, you have to declare `import`s. Please note that for now there will be no typechecks whatsoever by the Crystal compiler for this. You only need to include `import` statements for them to be present in the JavaScript code.
+
+```crystal
+require "js"
+
+class MyImportingModule < JS::Module
+  js_import Application, Controller, from: "/assets/stimulus.js"
+
+  def_to_js do
+    window.Stimulus = Application.start
+  end
+end
+
+puts MyImportingModule.to_js
+```
+
+### Loops
+
+`forEach` loops are supported.
+
+```crystal
+require "js"
+
+class MyLoop < JS::Code
+  def_to_js do
+    values = ["This", "Is", "Sparta"]
+    values.forEach do |value|
+      console.log(value)
+    end
+  end
+end
+
+puts MyLoop.to_js
+```
