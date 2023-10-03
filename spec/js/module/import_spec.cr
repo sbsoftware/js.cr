@@ -3,6 +3,7 @@ require "../../spec_helper"
 module JS::Module::ImportSpec
   class MyModule < JS::Module
     js_import Application, Controller, from: "/assets/stimulus.js"
+
     def_to_js do
       window.Stimulus = Application.start
     end
