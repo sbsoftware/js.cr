@@ -6,6 +6,12 @@ An experimental tool to generate JavaScript code from Crystal code.
 
 * [Goals](#goals)
 * [Examples](#examples)
+  * [Code Snippets](#javascript-code)
+  * [Functions](#javascript-functions)
+  * [Classes](#javascript-classes)
+  * [Modules](#javascript-modules)
+    * [Imports](#imports)
+  * [Loops](#loops)
 
 ## Goals
 
