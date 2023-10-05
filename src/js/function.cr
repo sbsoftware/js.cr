@@ -1,5 +1,10 @@
 module JS
   abstract class Function
+    # Dummy to make crystal interpreter work with README examples
+    def self.to_js(io : IO)
+      raise "Not implemented"
+    end
+
     def self.to_js_call(*args)
       String.build do |str|
         str << function_name
