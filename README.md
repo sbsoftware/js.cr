@@ -11,6 +11,7 @@ An experimental tool to generate JavaScript code from Crystal code.
   * [Classes](#javascript-classes)
   * [Modules](#javascript-modules)
     * [Imports](#imports)
+    * [Aliases](#aliases)
   * [Loops](#loops)
 
 ## Goals
@@ -129,6 +130,24 @@ class MyImportingModule < JS::Module
 end
 
 puts MyImportingModule.to_js
+```
+
+#### Aliases
+
+Sometimes you want to leverage JS libraries like jQuery or underscore.js that define entry points not expressable in Crystal. For these cases you can define aliases.
+
+```crystal
+require "js"
+
+class MyAliasingModule < JS::Module
+  js_alias "jQ", "$"
+
+  def_to_js do
+    jQ("div").addClass("foo")
+  end
+end
+
+puts MyAliasingModule.to_js
 ```
 
 ### Loops
