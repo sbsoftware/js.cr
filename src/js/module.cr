@@ -12,6 +12,10 @@ module JS
       @@js_imports << ("import { {{names.map(&.id).splat}} } from \"" + {{from}} + "\";")
     end
 
+    macro js_alias(new_name, old_name)
+      JS::Code.js_alias({{new_name}}, {{old_name}})
+    end
+
     macro js_class(name, &blk)
       {% if blk %}
         class {{name.id}} < JS::Class
