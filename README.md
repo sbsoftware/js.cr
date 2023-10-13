@@ -9,9 +9,9 @@ An experimental tool to generate JavaScript code from Crystal code.
   * [Code Snippets](#javascript-code)
   * [Functions](#javascript-functions)
   * [Classes](#javascript-classes)
-  * [Modules](#javascript-modules)
-    * [Imports](#imports)
+  * [Files](#javascript-files)
     * [Aliases](#aliases)
+  * [Modules](#javascript-modules)
   * [Loops](#loops)
 
 ## Goals
@@ -88,48 +88,34 @@ end
 puts MyClass.to_js
 ```
 
-### JavaScript Modules
+### Javascript Files
 
-All hail [JavaScript Modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)! These encapsulate an arbitrary number of functions and classes, and one code snippet to use them. This might change in the future.
+Want to put some functions and classes together? A `JS::File` encapsulates an arbitrary number of these, along with one code snippet to use them. This might change in the future, but it's enough for now.
 
 ```crystal
 require "js"
 
-class MyModule < JS::Module
-  js_function :hello do
-    console.log("Hello World!")
+class MyFile < JS::File
+  js_function :say_hello do
+    console.log("Hello!")
   end
 
-  js_class MyStimulusController do
-    js_method :connect do
-      console.log("connected!")
+  js_class ImportantData do
+    js_method :constructor do |name|
+      this.name = name
+    end
+
+    js_method :tell_name do
+      console.log(this.name)
     end
   end
 
   def_to_js do
-    hello.to_js_call
+    say_hello.to_js_call
   end
 end
 
-puts MyModule.to_js
-```
-
-#### Imports
-
-To make modules useful, you have to declare `import`s. Please note that for now there will be no typechecks whatsoever by the Crystal compiler for this. You only need to include `import` statements for them to be present in the JavaScript code.
-
-```crystal
-require "js"
-
-class MyImportingModule < JS::Module
-  js_import Application, Controller, from: "/assets/stimulus.js"
-
-  def_to_js do
-    window.Stimulus = Application.start
-  end
-end
-
-puts MyImportingModule.to_js
+puts MyFile.to_js
 ```
 
 #### Aliases
@@ -139,7 +125,7 @@ Sometimes you want to leverage JS libraries like jQuery or underscore.js that de
 ```crystal
 require "js"
 
-class MyAliasingModule < JS::Module
+class MyAliasingFile < JS::File
   js_alias "jQ", "$"
 
   def_to_js do
@@ -147,7 +133,35 @@ class MyAliasingModule < JS::Module
   end
 end
 
-puts MyAliasingModule.to_js
+puts MyAliasingFile.to_js
+```
+
+### JavaScript Modules
+
+All hail [JavaScript Modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)! Here these are just `JS::File`s that can additionally `import` things.
+
+Please note that for now there will be no typechecks whatsoever by the Crystal compiler for this. You only need to include `import` statements for them to be present in the JavaScript code.
+
+```crystal
+require "js"
+
+class MyImportingModule < JS::Module
+  js_import Application, Controller, from: "/assets/stimulus.js"
+
+  js_class MyStimulusController do
+    js_method :connect do
+      console.log("connected!")
+    end
+  end
+
+  def_to_js do
+    window.Stimulus = Application.start
+
+    Stimulus.register("my-stimulus", MyStimulusController)
+  end
+end
+
+puts MyImportingModule.to_js
 ```
 
 ### Loops
