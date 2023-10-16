@@ -53,7 +53,9 @@ module JS
         {{io}} << "var "
         {{io}} << {{blk.body.target.stringify}}
         {{io}} << " = "
-        {{io}} << {{blk.body.value.stringify}}
+        JS::Code._eval_js_block({{io}}) do
+          {{blk.body.value}}
+        end
         {{io}} << ";"
       {% elsif blk.body.is_a?(MacroIf) %}
         \{% if {{blk.body.cond}} %}
