@@ -112,6 +112,8 @@ class MyFile < JS::File
 
   def_to_js do
     say_hello.to_js_call
+    my_data = ImportantData.new("Joe")
+    my_data.tell_name
   end
 end
 
