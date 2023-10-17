@@ -30,12 +30,14 @@ module JS
       {% end %}
     end
 
-    macro _eval_js(io, &blk)
+    macro _eval_js(io, nested = false, &blk)
       {% if blk.body.is_a?(Call) && blk.body.name.stringify == "_literal_js" %}
         {{io}} << {{blk.body.args.first}}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_call" %}
         {{io}} << {{blk.body}}
-        {{io}} << ";"
+        {% if !nested %}
+          {{io}} << ";"
+        {% end %}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_ref" %}
         {{io}} << {{blk.body}}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "new" %}
@@ -56,20 +58,27 @@ module JS
         {{io}} << "."
         {{io}} << {{blk.body.name.stringify[0..-2]}}
         {{io}} << " = "
-        JS::Code._eval_js({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.args.first}}
         end
+        {% if !nested %}
+          {{io}} << ";"
+        {% end %}
       {% elsif blk.body.is_a?(Call) %}
         JS::Code._eval_js_call({{io}}) {{blk}}
-        {{io}} << ";"
+        {% if !nested %}
+          {{io}} << ";"
+        {% end %}
       {% elsif blk.body.is_a?(Assign) %}
         {{io}} << "var "
         {{io}} << {{blk.body.target.stringify}}
         {{io}} << " = "
-        JS::Code._eval_js_block({{io}}) do
+        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.value}}
         end
-        {{io}} << ";"
+        {% if !nested %}
+          {{io}} << ";"
+        {% end %}
       {% elsif blk.body.is_a?(MacroIf) %}
         \{% if {{blk.body.cond}} %}
           JS::Code._eval_js_block({{io}}) do

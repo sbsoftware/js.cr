@@ -12,7 +12,7 @@ module JS
         {% end %}
       end
 
-      JS::Code.def_to_js do {% !blk.args.empty? ? "|#{blk.args.splat}|".id : "".id %}
+      JS::Code.def_to_js do {{ !blk.args.empty? ? "|#{blk.args.splat}|".id : "".id }}
         _literal_js("#{function_name}({{blk.args.splat}}) {")
         {{blk.body}}
         _literal_js("}")
