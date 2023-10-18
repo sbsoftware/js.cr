@@ -68,6 +68,8 @@ module JS
         {{io}} << " = "
         {{io}} << {{blk.body.value.stringify}}
         {{io}} << ";"
+      {% elsif blk.body.is_a?(MacroExpression) || blk.body.is_a?(MacroLiteral) || blk.body.is_a?(MacroIf) || blk.body.is_a?(MacroFor) %}
+        {{blk.body}}
       {% else %}
         {{io}} << {{blk.body.stringify}}
       {% end %}
