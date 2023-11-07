@@ -4,6 +4,6 @@ version: 1.0.1
 authors:
   - Stefan Bilharz <stefan@sbsoftware.de>
 
-crystal: 1.9.2
+crystal: ">= 1.11.0"
 
 license: MIT
