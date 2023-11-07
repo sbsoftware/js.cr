@@ -68,7 +68,23 @@ module JS
         {{io}} << " = "
         {{io}} << {{blk.body.value.stringify}}
         {{io}} << ";"
-      {% elsif blk.body.is_a?(MacroExpression) || blk.body.is_a?(MacroLiteral) || blk.body.is_a?(MacroIf) || blk.body.is_a?(MacroFor) %}
+      {% elsif blk.body.is_a?(MacroIf) %}
+        \{% if {{blk.body.cond}} %}
+          JS::Code._eval_js_block({{io}}) do
+            {{blk.body.then}}
+          end
+        \{% else %}
+          JS::Code._eval_js_block({{io}}) do
+            {{blk.body.else}}
+          end
+        \{% end %}
+      {% elsif blk.body.is_a?(MacroFor) %}
+        \{% for {{blk.body.vars.splat}} in {{blk.body.exp}} %}
+          JS::Code._eval_js_block({{io}}) do
+            {{blk.body.body}}
+          end
+        \{% end %}
+      {% elsif blk.body.is_a?(MacroExpression) || blk.body.is_a?(MacroLiteral) %}
         {{blk.body}}
       {% else %}
         {{io}} << {{blk.body.stringify}}
