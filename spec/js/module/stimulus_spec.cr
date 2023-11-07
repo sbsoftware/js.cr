@@ -13,7 +13,7 @@ module JS::Module::StimulusSpec
     end
 
     def_to_js do
-      window.Stimulus = Application.start
+      window.Stimulus = Application.start._call
 
       Stimulus.register("my", MyController)
     end

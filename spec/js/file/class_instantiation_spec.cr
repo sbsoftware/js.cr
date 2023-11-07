@@ -16,7 +16,7 @@ module JS::File::ClassInstantiationSpec
     def_to_js do
       my_bar = "goo"
       my_class = SomeClass.new("blah", my_bar)
-      my_class.do_something
+      my_class.do_something._call
     end
   end
 

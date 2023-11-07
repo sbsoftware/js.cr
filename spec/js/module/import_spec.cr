@@ -5,7 +5,7 @@ module JS::Module::ImportSpec
     js_import Application, Controller, from: "/assets/stimulus.js"
 
     def_to_js do
-      window.Stimulus = Application.start
+      window.Stimulus = Application.start._call
     end
   end
 
