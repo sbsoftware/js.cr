@@ -7,6 +7,7 @@ An experimental tool to generate JavaScript code from Crystal code.
 * [Goals](#goals)
 * [Examples](#examples)
   * [Code Snippets](#javascript-code)
+    * [`_call`](#_call)
   * [Functions](#javascript-functions)
   * [Classes](#javascript-classes)
   * [Files](#javascript-files)
@@ -40,6 +41,29 @@ class MyCode < JS::Code
 end
 
 puts MyCode.to_js
+```
+
+#### `_call`
+
+In Crystal, there are no object properties but just method calls. Without any type information about the JS code you are calling, `js.cr` cannot know whether you want to reference a property or call a function without any arguments on an object.
+It therefore always assumes a property reference. If you need a function call instead, just append `._call` to it.
+Note that this isn't necessary if your call has arguments.
+
+```crystal
+require "js"
+
+class MyCallCode < JS::Code
+  def_to_js do
+    a = SomeUnknownJSConstant.somePropertyOfIt
+    b = SomeUnknownJSConstant.someFunctionOfIt._call
+    c = SomeUnknownJSConstant.someOtherFunctionOfIt("foo")
+  end
+end
+
+# => var a = SomeUnknownJSConstant.somePropertyOfIt;
+# => var b = SomeUnknownJSConstant.someFunctionOfIt();
+# => var c = SomeUnknownJSConstant.someOtherFunctionOfIt("foo");
+puts MyCallCode.to_js
 ```
 
 ### JavaScript Functions
@@ -113,7 +137,7 @@ class MyFile < JS::File
   def_to_js do
     say_hello.to_js_call
     my_data = ImportantData.new("Joe")
-    my_data.tell_name
+    my_data.tell_name._call
   end
 end
 
@@ -157,7 +181,7 @@ class MyImportingModule < JS::Module
   end
 
   def_to_js do
-    window.Stimulus = Application.start
+    window.Stimulus = Application.start._call
 
     Stimulus.register("my-stimulus", MyStimulusController)
   end
