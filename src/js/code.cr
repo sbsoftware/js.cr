@@ -51,7 +51,7 @@ module JS
         {% end %}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "new" %}
         {{io}} << "new "
-        {{io}} << {{blk.body.receiver}}.class_name
+        {{io}} << {{blk.body.receiver.stringify}}
         {{io}} << "("
         {% for arg, index in blk.body.args %}
           JS::Code._eval_js_arg({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}

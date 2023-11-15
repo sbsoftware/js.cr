@@ -17,6 +17,9 @@ module JS::Class::InstantiationSpec
       my_bar = "goo"
       my_class = SomeClass.new("blah", my_bar)
       my_class.do_something._call
+
+      my_foo = Foo.new("bar")
+      mem = WebAssembly.Memory.new
     end
   end
 
@@ -37,6 +40,8 @@ module JS::Class::InstantiationSpec
       var my_bar = "goo";
       var my_class = new SomeClass("blah", my_bar);
       my_class.do_something();
+      var my_foo = new Foo("bar");
+      var mem = new WebAssembly.Memory();
       JS
 
       MyFile.to_js.should eq(expected)
