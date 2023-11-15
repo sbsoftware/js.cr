@@ -1,6 +1,6 @@
 require "../../spec_helper"
 
-module JS::File::ClassInstantiationSpec
+module JS::Class::InstantiationSpec
   class MyFile < JS::File
     js_class SomeClass do
       js_method :constructor do |foo, bar|
