@@ -10,9 +10,14 @@ module JS::Module::BasicSpec
       console.log(bar)
     end
 
+    js_function otherFunc do |a|
+      console.log(a)
+    end
+
     def_to_js do
       module_func1.to_js_call("heck")
       module_func2.to_js_call("this works")
+      otherFunc.to_js_call("a")
     end
   end
 
@@ -25,8 +30,12 @@ module JS::Module::BasicSpec
       function module_func2(bar) {
         console.log(bar);
       }
+      function otherFunc(a) {
+        console.log(a);
+      }
       module_func1("heck");
       module_func2("this works");
+      otherFunc("a");
       JS
 
       MyModule.to_js.should eq(expected)

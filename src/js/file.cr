@@ -23,7 +23,7 @@ module JS
 
     macro js_function(name, &blk)
       class {{name.id.stringify.camelcase.id}} < JS::Function
-        def_to_js {{blk}}
+        def_to_js({{name.id.stringify}}) {{blk}}
       end
 
       @@js_functions << {{name.id.stringify.camelcase.id}}
