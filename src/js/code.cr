@@ -88,6 +88,11 @@ module JS
         {% if !nested %}
           {{io}} << ";"
         {% end %}
+      {% elsif blk.body.is_a?(Return) %}
+        {{io}} << "return "
+        JS::Code._eval_js({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          {{blk.body.exp}}
+        end
       {% elsif blk.body.is_a?(MacroIf) %}
         \{% if {{blk.body.cond}} %}
           JS::Code._eval_js_block({{io}}) do
@@ -147,7 +152,7 @@ module JS
           JS::Code._eval_js_arg({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
             {{arg}}
           end
-          {% if index < blk.body.args.size - 1 %}
+          {% if index < blk.body.args.size - 1 || blk.body.block %}
             {{io}} << ", "
           {% end %}
         {% end %}
