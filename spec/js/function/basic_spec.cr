@@ -1,6 +1,6 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JS::FunctionSpec
+module JS::Function::BasicSpec
   class FunctionCode < JS::Function
     def_to_js :my_func do |foo, bar|
       console.log(foo)

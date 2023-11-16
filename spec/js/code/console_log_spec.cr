@@ -1,6 +1,6 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JS::ConsoleLogSpec
+module JS::Code::ConsoleLogSpec
   class ConsoleCode < JS::Code
     def_to_js do
       console.log("Hello World!")

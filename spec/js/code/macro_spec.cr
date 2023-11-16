@@ -1,6 +1,6 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JS::MacroSpec
+module JS::Code::MacroSpec
   class MyJs < JS::Code
     def_to_js do
       {% if true %}

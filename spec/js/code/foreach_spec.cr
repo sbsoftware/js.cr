@@ -1,6 +1,6 @@
-require "../spec_helper"
+require "../../spec_helper"
 
-module JS::ForeachSpec
+module JS::Code::ForeachSpec
   class MyJs < JS::Code
     def_to_js do
       arr = ["this", "is", "sparta"]
