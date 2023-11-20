@@ -1,6 +1,6 @@
 module JS
   abstract class Code
-    OPERATOR_CALL_NAMES = %w[+ - * / ** ^ // & | && ||]
+    OPERATOR_CALL_NAMES = %w[+ - * / ** ^ // & | && || > >= < <= == !=]
 
     JS_ALIASES = {} of String => String
 
@@ -75,7 +75,7 @@ module JS
         {% if !nested %}
           {{io}} << ";"
         {% end %}
-      {% elsif blk.body.is_a?(Call) && blk.body.name.stringify.ends_with?("=") %}
+      {% elsif blk.body.is_a?(Call) && blk.body.name.stringify.ends_with?("=") && blk.body.name.stringify != "==" %}
         {{io}} << {{blk.body.receiver.stringify}}
         {{io}} << "."
         {{io}} << {{blk.body.name.stringify[0..-2]}}
