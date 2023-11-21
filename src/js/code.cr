@@ -91,6 +91,22 @@ module JS
         {% if !nested %}
           {{io}} << ";"
         {% end %}
+      {% elsif blk.body.is_a?(HashLiteral) %}
+        {{io}} << "{"
+        {% for key, i in blk.body.keys %}
+          {{io}} << {{key.id.stringify}}
+          {{io}} << ": "
+          JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            {{blk.body[key]}}
+          end
+          {% if i < blk.body.size - 1 %}
+            {{io}} << ", "
+          {% end %}
+        {% end %}
+        {{io}} << "}"
+        {% if !nested %}
+          {{io}} << ";"
+        {% end %}
       {% elsif blk.body.is_a?(If) %}
         {{io}} << "if ("
         JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
