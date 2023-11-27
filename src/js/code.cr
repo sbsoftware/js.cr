@@ -216,7 +216,9 @@ module JS
     end
 
     macro _eval_js_arg(io, &blk)
-      {% if blk.body.is_a?(Call) && (blk.body.name.stringify == "to_js_ref" || blk.body.name.stringify == "to_js_call") %}
+      {% if blk.body.is_a?(Call) && blk.body.name.stringify == "_literal_js" %}
+        {{io}} << {{blk.body.args.first}}
+      {% elsif blk.body.is_a?(Call) && (blk.body.name.stringify == "to_js_ref" || blk.body.name.stringify == "to_js_call") %}
         {{io}} << {{blk.body}}
       {% else %}
         {{io}} << {{blk.body.stringify}}
