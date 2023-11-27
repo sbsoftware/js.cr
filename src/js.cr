@@ -1,2 +1,2 @@
 require "./js/module"
-require "./ext/int"
+require "./ext/*"
