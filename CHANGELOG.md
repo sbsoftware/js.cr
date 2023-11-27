@@ -1,6 +1,23 @@
 # Changelog
 
-## *[v1.1.0](https://github.com/sbsoftware/js.cr/releases/tag/v1.1.0)*
+## [v1.1.0](https://github.com/sbsoftware/js.cr/releases/tag/v1.1.0)
+
+## Features
+* Impossible variable/method names for Crystal can be aliased
+* `JS::File` is introduced as generalization of `JS::Module`
+* `JS::Classes` can be instantiated
+* `If`s are transpiled correctly (#6)
+* Return statements are transpiled correctly
+* Hash literals are transformed into JavaScript objects (#7)
+* Hash value assignment is transpiled correctly (#5)
+* `#to_js_ref` can be used with Strings (#9)
+
+## Bugs
+* Function names are transformed to underscore (#3)
+* `new` does not work with unknown constants (#2)
+* Blocks as anonymous function parameters don't work with other arguments (#4)
+* `_literal_js` does not work for call arguments (#8)
+* Math operators don't work (#1)
 
 ## [v1.0.2](https://github.com/sbsoftware/js.cr/releases/tag/v1.0.2)
 
