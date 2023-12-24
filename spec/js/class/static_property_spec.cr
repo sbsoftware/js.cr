@@ -8,7 +8,7 @@ module JS::Class::StaticPropertySpec
   describe "MyClass.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      class MyClass {
+      class JS_Class_StaticPropertySpec_MyClass {
         static things = ["one_thing", "another_thing"];
       }
       JS

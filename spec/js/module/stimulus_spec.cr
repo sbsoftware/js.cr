@@ -23,14 +23,14 @@ module JS::Module::StimulusSpec
     it "should return the correct JS code" do
       expected = <<-JS.squish
       import { Application, Controller } from "/assets/stimulus.js";
-      class MyController extends Controller {
+      class JS_Module_StimulusSpec_MyModule_MyController extends Controller {
         connect() {
           console.log("connected!");
         }
       }
 
       window.Stimulus = Application.start();
-      Stimulus.register("my", MyController);
+      Stimulus.register("my", JS_Module_StimulusSpec_MyModule_MyController);
       JS
 
       MyModule.to_js.should eq(expected)

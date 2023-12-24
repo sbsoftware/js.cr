@@ -8,7 +8,7 @@ module JS
     @@js_methods = [] of JS::Method.class
 
     def self.class_name
-      name.split("::")[-1]
+      name.gsub(/::/, "_")
     end
 
     macro js_extends(name)
@@ -29,6 +29,10 @@ module JS
       def self.{{name.id}}
         {{name.id.stringify.camelcase.id}}
       end
+    end
+
+    def self.to_js_ref
+      class_name
     end
 
     def self.to_js(io : IO)

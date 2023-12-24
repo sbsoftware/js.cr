@@ -10,7 +10,7 @@ module JS
 
     macro def_to_js(&blk)
       def self.to_js(io : IO)
-        JS::Code._eval_js_block(io) {{blk}}
+        JS::Code._eval_js_block(io, {{@type.resolve}}) {{blk}}
       end
 
       def self.to_js
@@ -20,19 +20,19 @@ module JS
       end
     end
 
-    macro _eval_js_block(io, &blk)
+    macro _eval_js_block(io, namespace, &blk)
       {% if blk.body.is_a?(Expressions) %}
         {% for exp in blk.body.expressions %}
-          JS::Code._eval_js({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          JS::Code._eval_js({{io}}, {{namespace}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
             {{exp}}
           end
         {% end %}
       {% else %}
-        JS::Code._eval_js({{io}}) {{blk}}
+        JS::Code._eval_js({{io}}, {{namespace}}) {{blk}}
       {% end %}
     end
 
-    macro _eval_js(io, nested = false, &blk)
+    macro _eval_js(io, namespace, nested = false, &blk)
       {% if blk.body.is_a?(Call) && blk.body.name.stringify == "_literal_js" %}
         {{io}} << {{blk.body.args.first}}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_call" %}
@@ -43,7 +43,7 @@ module JS
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "to_js_ref" %}
         {{io}} << {{blk.body}}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "_call" && blk.body.receiver %}
-        JS::Code._eval_js_call({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js_call({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.receiver}}
         end
         {% if !nested %}
@@ -51,7 +51,9 @@ module JS
         {% end %}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "new" %}
         {{io}} << "new "
-        {{io}} << {{blk.body.receiver.stringify}}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          {{blk.body.receiver}}
+        end
         {{io}} << "("
         {% for arg, index in blk.body.args %}
           JS::Code._eval_js_arg({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
@@ -75,11 +77,11 @@ module JS
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "[]=" %}
         {{io}} << {{blk.body.receiver.stringify}}
         {{io}} << "["
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.args.first}}
         end
         {{io}} << "] = "
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.args.last}}
         end
         {% if !nested %}
@@ -90,23 +92,39 @@ module JS
         {{io}} << "."
         {{io}} << {{blk.body.name.stringify[0..-2]}}
         {{io}} << " = "
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.args.first}}
         end
         {% if !nested %}
           {{io}} << ";"
         {% end %}
       {% elsif blk.body.is_a?(Call) %}
-        JS::Code._eval_js_call({{io}}) {{blk}}
+        JS::Code._eval_js_call({{io}}, {{namespace}}) {{blk}}
         {% if !nested %}
           {{io}} << ";"
+        {% end %}
+      {% elsif (blk.body.is_a?(Path) || blk.body.is_a?(TypeNode)) %}
+        {% if parse_type("#{namespace}::#{blk.body.id}").resolve? %}
+          if {{namespace}}::{{blk.body}}.responds_to?(:to_js_ref)
+            {{io}} << {{namespace}}::{{blk.body}}.to_js_ref
+          else
+            {{io}} << {{blk.body.stringify}}
+          end
+        {% elsif blk.body.resolve? %}
+          if {{blk.body}}.responds_to?(:to_js_ref)
+            {{io}} << {{blk.body}}.to_js_ref
+          else
+            {{io}} << {{blk.body.stringify}}
+          end
+        {% else %}
+          {{io}} << {{blk.body.stringify}}
         {% end %}
       {% elsif blk.body.is_a?(HashLiteral) %}
         {{io}} << "{"
         {% for key, i in blk.body.keys %}
           {{io}} << {{key.id.stringify}}
           {{io}} << ": "
-          JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
             {{blk.body[key]}}
           end
           {% if i < blk.body.size - 1 %}
@@ -119,17 +137,17 @@ module JS
         {% end %}
       {% elsif blk.body.is_a?(If) %}
         {{io}} << "if ("
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.cond}}
         end
         {{io}} << ") {"
-        JS::Code._eval_js_block({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js_block({{io}}, {{namespace}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.then}}
         end
         {{io}} << "}"
         {% if blk.body.else %}
           {{io}} << " else {"
-          JS::Code._eval_js_block({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          JS::Code._eval_js_block({{io}}, {{namespace}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
             {{blk.body.else}}
           end
           {{io}} << "}"
@@ -138,7 +156,7 @@ module JS
         {{io}} << "var "
         {{io}} << {{blk.body.target.stringify}}
         {{io}} << " = "
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.value}}
         end
         {% if !nested %}
@@ -146,22 +164,22 @@ module JS
         {% end %}
       {% elsif blk.body.is_a?(Return) %}
         {{io}} << "return "
-        JS::Code._eval_js({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.exp}}
         end
       {% elsif blk.body.is_a?(MacroIf) %}
         \{% if {{blk.body.cond}} %}
-          JS::Code._eval_js_block({{io}}) do
+          JS::Code._eval_js_block({{io}}, {{namespace}}) do
             {{blk.body.then}}
           end
         \{% else %}
-          JS::Code._eval_js_block({{io}}) do
+          JS::Code._eval_js_block({{io}}, {{namespace}}) do
             {{blk.body.else}}
           end
         \{% end %}
       {% elsif blk.body.is_a?(MacroFor) %}
         \{% for {{blk.body.vars.splat}} in {{blk.body.exp}} %}
-          JS::Code._eval_js_block({{io}}) do
+          JS::Code._eval_js_block({{io}}, {{namespace}}) do
             {{blk.body.body}}
           end
         \{% end %}
@@ -172,29 +190,35 @@ module JS
       {% end %}
     end
 
-    macro _eval_js_call(io, force_empty_parens = false, &blk)
+    macro _eval_js_call(io, namespace, force_empty_parens = false, &blk)
       {% if blk.body.receiver && blk.body.args.size == 1 && OPERATOR_CALL_NAMES.includes?(blk.body.name.stringify) %}
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.receiver}}
         end
         {{io}} << " "
         {{io}} << {{blk.body.name.stringify}}
         {{io}} << " "
-        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js({{io}}, {{namespace}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.args.first}}
         end
       {% else %}
         {% if blk.body.receiver %}
           {% if blk.body.receiver.is_a?(Call) %}
-            JS::Code._eval_js_call({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_call({{io}}, {{namespace}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{blk.body.receiver}}
             end
           {% elsif blk.body.receiver.is_a?(Expressions) %}
             {% for exp in blk.body.receiver.expressions %}
-              JS::Code._eval_js_call({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              JS::Code._eval_js_call({{io}}, {{namespace}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp}}
               end
             {% end %}
+          {% elsif (blk.body.receiver.is_a?(Path) || blk.body.receiver.is_a?(TypeNode)) && blk.body.receiver.resolve? %}
+            if {{blk.body.receiver}}.responds_to?(:to_js_ref)
+              {{io}} << {{blk.body.receiver}}.to_js_ref
+            else
+              {{io}} << {{blk.body.receiver.stringify}}
+            end
           {% else %}
             {{io}} << {{blk.body.receiver.stringify}}
           {% end %}
@@ -216,7 +240,7 @@ module JS
           {{io}} << "function("
           {{io}} << {{blk.body.block.args.splat.stringify}}
           {{io}} << ") {"
-          JS::Code._eval_js_block({{io}}) {{blk.body.block}}
+          JS::Code._eval_js_block({{io}}, {{namespace}}) {{blk.body.block}}
           {{io}} << "}"
         {% end %}
         {% if blk.body.args.size > 0 || blk.body.block || force_empty_parens %}
@@ -230,6 +254,12 @@ module JS
         {{io}} << {{blk.body.args.first}}
       {% elsif blk.body.is_a?(Call) && (blk.body.name.stringify == "to_js_ref" || blk.body.name.stringify == "to_js_call") %}
         {{io}} << {{blk.body}}
+      {% elsif (blk.body.is_a?(Path) || blk.body.is_a?(TypeNode)) %}
+        if {{blk.body}}.responds_to?(:to_js_ref)
+          {{io}} << {{blk.body}}.to_js_ref
+        else
+          {{io}} << {{blk.body.stringify}}
+        end
       {% else %}
         {{io}} << {{blk.body.stringify}}
       {% end %}

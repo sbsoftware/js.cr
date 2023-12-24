@@ -26,7 +26,7 @@ module JS::Class::InstantiationSpec
   describe "MyFile.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      class SomeClass {
+      class JS_Class_InstantiationSpec_MyFile_SomeClass {
         constructor(foo, bar) {
           this.foo = foo;
           this.bar = bar;
@@ -38,7 +38,7 @@ module JS::Class::InstantiationSpec
       }
 
       var my_bar = "goo";
-      var my_class = new SomeClass("blah", my_bar);
+      var my_class = new JS_Class_InstantiationSpec_MyFile_SomeClass("blah", my_bar);
       my_class.do_something();
       var my_foo = new Foo("bar");
       var mem = new WebAssembly.Memory();

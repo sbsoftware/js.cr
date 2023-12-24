@@ -12,7 +12,7 @@ module JS::Class::BasicSpec
   describe "MyClass.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      class MyClass extends Controller {
+      class JS_Class_BasicSpec_MyClass extends Controller {
         do_something() {
           console.log(this.element.name);
         }
