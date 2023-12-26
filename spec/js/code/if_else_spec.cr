@@ -7,8 +7,10 @@ module JS::Code::IfElseSpec
 
       if c > 3
         foo.bar = 7
+        _literal_js("console.log(\"then\");")
       else
         foo.bar = 5
+        _literal_js("console.log(\"else\");")
       end
 
       if something == "test"
@@ -28,8 +30,10 @@ module JS::Code::IfElseSpec
 
       if (c > 3) {
         foo.bar = 7;
+        console.log("then");
       } else {
         foo.bar = 5;
+        console.log("else");
       }
 
       if (something == "test") {

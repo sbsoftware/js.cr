@@ -113,13 +113,13 @@ module JS
           {{blk.body.cond}}
         end
         {{io}} << ") {"
-        JS::Code._eval_js({{io}}, false) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+        JS::Code._eval_js_block({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
           {{blk.body.then}}
         end
         {{io}} << "}"
         {% if blk.body.else %}
           {{io}} << " else {"
-          JS::Code._eval_js({{io}}, false) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          JS::Code._eval_js_block({{io}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
             {{blk.body.else}}
           end
           {{io}} << "}"
