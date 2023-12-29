@@ -75,7 +75,7 @@ module JS
         {% if !nested %}
           {{io}} << ";"
         {% end %}
-      {% elsif blk.body.is_a?(Call) && blk.body.name.stringify.ends_with?("=") && blk.body.name.stringify != "==" %}
+      {% elsif blk.body.is_a?(Call) && blk.body.name.stringify.ends_with?("=") && !OPERATOR_CALL_NAMES.includes?(blk.body.name.stringify) %}
         {{io}} << {{blk.body.receiver.stringify}}
         {{io}} << "."
         {{io}} << {{blk.body.name.stringify[0..-2]}}
