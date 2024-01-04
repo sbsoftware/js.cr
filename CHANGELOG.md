@@ -1,9 +1,11 @@
 # Changelog
 
-## *v1.2.0*
+## [v1.1.1](https://github.com/sbsoftware/js.cr/releases/tag/v1.1.1)
 
 ## Bugs
 * Multiple expressions in if/else blocks are not evaulated (#10)
+* Operators ending with "=" are handled as assignments (#11)
+* Object property lookup is not transpiled correctly (#12)
 
 ## [v1.1.0](https://github.com/sbsoftware/js.cr/releases/tag/v1.1.0)
 
