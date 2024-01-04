@@ -5,7 +5,10 @@ module JS::Code::HashAssignmentSpec
     def_to_js do
       my_arr = Uint8Array.new(20)
       my_arr[7] = 14
-      console.log(my_arr[7])
+      other_var = 10
+      if my_arr[7] > other_var
+        console.log(my_arr[7])
+      end
     end
   end
 
@@ -14,7 +17,10 @@ module JS::Code::HashAssignmentSpec
       expected = <<-JS.squish
       var my_arr = new Uint8Array(20);
       my_arr[7] = 14;
-      console.log(my_arr[7]);
+      var other_var = 10;
+      if (my_arr[7] > other_var) {
+        console.log(my_arr[7]);
+      }
       JS
 
       MyCode.to_js.should eq(expected)

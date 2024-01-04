@@ -62,6 +62,16 @@ module JS
           {% end %}
         {% end %}
         {{io}} << ")"
+      {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "[]" %}
+        {{io}} << {{blk.body.receiver.stringify}}
+        {{io}} << "["
+        JS::Code._eval_js({{io}}, true) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+          {{blk.body.args.first}}
+        end
+        {{io}} << "]"
+        {% if !nested %}
+          {{io}} << ";"
+        {% end %}
       {% elsif blk.body.is_a?(Call) && blk.body.name.stringify == "[]=" %}
         {{io}} << {{blk.body.receiver.stringify}}
         {{io}} << "["
