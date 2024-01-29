@@ -29,7 +29,7 @@ module JS::Code::OperatorSpec
       var y = j + 10;
       var x = y - 2;
       var z = x / 2;
-      var a = ((i * j) * z) + 4;
+      var a = i * j * z + 4;
       var b = 4 * 4;
       if ((x > 0 && x >= y) || (x < 0 && x <= y)) {
         console.log("yes");
