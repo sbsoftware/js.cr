@@ -34,6 +34,10 @@ module JS
     end
 
     macro def_to_js(&blk)
+      def_to_js({{@type}}) {{blk}}
+    end
+
+    macro def_to_js(namespace, &blk)
       def self.to_js(io : IO)
         @@js_classes.each do |js_class|
           js_class.to_js(io)
@@ -41,7 +45,7 @@ module JS
         @@js_functions.each do |func|
           func.to_js(io)
         end
-        JS::Code._eval_js_block(io, {{@type}}) {{blk}}
+        JS::Code._eval_js_block(io, {{namespace}}) {{blk}}
       end
 
       def self.to_js

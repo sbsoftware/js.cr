@@ -9,7 +9,7 @@ module JS
     end
 
     macro def_to_js(&blk)
-      JS::File.def_to_js {{blk}}
+      JS::File.def_to_js({{@type}}) {{blk}}
 
       def self.to_js(io : IO)
         @@js_imports.join(io, "\n")
