@@ -37,11 +37,15 @@ module JS::Class::InstantiationSpec
         }
       }
 
-      var my_bar = "goo";
-      var my_class = new JS_Class_InstantiationSpec_MyFile_SomeClass("blah", my_bar);
+      var my_bar;
+      var my_class;
+      var my_foo;
+      var mem;
+      my_bar = "goo";
+      my_class = new JS_Class_InstantiationSpec_MyFile_SomeClass("blah", my_bar);
       my_class.do_something();
-      var my_foo = new Foo("bar");
-      var mem = new WebAssembly.Memory();
+      my_foo = new Foo("bar");
+      mem = new WebAssembly.Memory();
       JS
 
       MyFile.to_js.should eq(expected)

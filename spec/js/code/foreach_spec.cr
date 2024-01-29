@@ -13,7 +13,8 @@ module JS::Code::ForeachSpec
   describe "MyJs.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      var arr = ["this", "is", "sparta"];
+      var arr;
+      arr = ["this", "is", "sparta"];
       arr.forEach(function(item) {
         console.log(item);
       });

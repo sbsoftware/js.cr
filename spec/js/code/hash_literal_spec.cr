@@ -12,9 +12,12 @@ module JS::Code::HashLiteralSpec
   describe "MyCode.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      var h1 = {};
-      var h2 = {test: "foo"};
-      var h3 = {blah: 1, gold: "digga"};
+      var h1;
+      var h2;
+      var h3;
+      h1 = {};
+      h2 = {test: "foo"};
+      h3 = {blah: 1, gold: "digga"};
       JS
 
       MyCode.to_js.should eq(expected)

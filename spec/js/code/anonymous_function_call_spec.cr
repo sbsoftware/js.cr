@@ -12,7 +12,8 @@ module JS::Code::AnonymousFunctionCallSpec
   describe "MyJS.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      var arr = Uint8Array.from("test", function(c) {
+      var arr;
+      arr = Uint8Array.from("test", function(c) {
         return c.charCodeAt(0);
       });
       JS

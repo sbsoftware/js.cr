@@ -22,6 +22,12 @@ module JS
 
     macro _eval_js_block(io, namespace, nested = false, &blk)
       {% if blk.body.is_a?(Expressions) %}
+        {% for var in blk.body.expressions.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq %}
+          {{io}} << "var "
+          {{io}} << {{var}}
+          {{io}} << ";"
+        {% end %}
+
         {% for exp in blk.body.expressions %}
           {% if exp.is_a?(Call) && exp.name.stringify == "_literal_js" %}
             {{io}} << {{exp.args.first}}
