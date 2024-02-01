@@ -12,6 +12,8 @@ module JS::Code::ToJsRefSpec
       if important_number_from_crystal.to_js_ref < 100
         console.log(IMPORTANT_CONTENT_FROM_CRYSTAL.to_js_ref)
       end
+
+      console.log(Date.new(important_number_from_crystal.to_js_ref).toString._call)
     end
   end
 
@@ -21,6 +23,8 @@ module JS::Code::ToJsRefSpec
       if (43 < 100) {
         console.log("blah");
       }
+
+      console.log(new Date(43).toString());
       JS
 
       MyCode.to_js.should eq(expected)
