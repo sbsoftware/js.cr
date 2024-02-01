@@ -16,8 +16,8 @@ module JS::Code::OperatorSpec
       if x > 0 && x >= y || x < 0 && x <= y
         console.log("yes")
       end
-      c = a if a == b
-      d = x if x >= j
+      z += 1 if a == b
+      x -= 1 if x >= j
     end
   end
 
@@ -43,12 +43,10 @@ module JS::Code::OperatorSpec
         console.log("yes");
       }
       if (a == b) {
-        var c;
-        c = a;
+        z = z + 1;
       }
       if (x >= j) {
-        var d;
-        d = x;
+        x = x - 1;
       }
       JS
 

@@ -45,7 +45,7 @@ module JS
         @@js_functions.each do |func|
           func.to_js(io)
         end
-        JS::Code._eval_js_block(io, {{namespace}}, {inline: false}) {{blk}}
+        JS::Code._eval_js_block(io, {{namespace}}, {inline: false, nested_scope: true}) {{blk}}
       end
 
       def self.to_js

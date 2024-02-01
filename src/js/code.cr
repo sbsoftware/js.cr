@@ -10,7 +10,7 @@ module JS
 
     macro def_to_js(&blk)
       def self.to_js(io : IO)
-        JS::Code._eval_js_block(io, {{@type.resolve}}, {inline: false}) {{blk}}
+        JS::Code._eval_js_block(io, {{@type.resolve}}, {inline: false, nested_scope: true}) {{blk}}
       end
 
       def self.to_js
@@ -22,10 +22,12 @@ module JS
 
     macro _eval_js_block(io, namespace, opts, &blk)
       {% if blk.body.is_a?(Expressions) %}
-        {% for var in blk.body.expressions.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq %}
-          {{io}} << "var "
-          {{io}} << {{var}}
-          {{io}} << ";"
+        {% if opts[:nested_scope] %}
+          {% for var in blk.body.expressions.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq %}
+            {{io}} << "var "
+            {{io}} << {{var}}
+            {{io}} << ";"
+          {% end %}
         {% end %}
 
         {% for exp in blk.body.expressions %}
@@ -40,12 +42,12 @@ module JS
             {{io}} << {{exp}}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "new" %}
             {{io}} << "new "
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.receiver}}
             end
             {{io}} << "("
             {% for arg, index in exp.args %}
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{arg}}
               end
               {% if index < exp.args.size - 1 %}
@@ -56,7 +58,7 @@ module JS
           {% elsif exp.is_a?(Call) && exp.name.stringify == "[]" %}
             {{io}} << {{exp.receiver.stringify}}
             {{io}} << "["
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.args.first}}
             end
             {{io}} << "]"
@@ -66,11 +68,11 @@ module JS
           {% elsif exp.is_a?(Call) && exp.name.stringify == "[]=" %}
             {{io}} << {{exp.receiver.stringify}}
             {{io}} << "["
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.args.first}}
             end
             {{io}} << "] = "
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.args.last}}
             end
             {% if !opts[:inline] %}
@@ -81,7 +83,7 @@ module JS
             {{io}} << "."
             {{io}} << {{exp.name.stringify[0..-2]}}
             {{io}} << " = "
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.args.first}}
             end
             {% if !opts[:inline] %}
@@ -89,25 +91,25 @@ module JS
             {% end %}
           {% elsif exp.is_a?(Call) %}
             {% if exp.receiver && exp.args.size == 1 && OPERATOR_CALL_NAMES.includes?(exp.name.stringify) %}
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp.receiver}}
               end
               {{io}} << " "
               {{io}} << {{exp.name.stringify}}
               {{io}} << " "
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp.args.first}}
               end
             {% else %}
               {% if exp.receiver %}
                 # TODO: Replace this whole `if` by a recursive call to this macro?
                 {% if exp.receiver.is_a?(Call) %}
-                  JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+                  JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                     {{exp.receiver}}
                   end
                 {% elsif exp.receiver.is_a?(Expressions) %}
                   {% for rec_exp in exp.receiver.expressions %}
-                    JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+                    JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                       {{rec_exp}}
                     end
                   {% end %}
@@ -131,7 +133,7 @@ module JS
                 {{io}} << "("
               {% end %}
               {% for arg, index in exp.args %}
-                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                   {{arg}}
                 end
                 {% if index < exp.args.size - 1 || exp.block %}
@@ -142,7 +144,7 @@ module JS
                 {{io}} << "function("
                 {{io}} << {{exp.block.args.splat.stringify}}
                 {{io}} << ") {"
-                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) {{exp.block}}
+                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: true}) {{exp.block}}
                 {{io}} << "}"
               {% end %}
               {% if exp.args.size > 0 || exp.block || exp.name.stringify == "_call" %}
@@ -173,7 +175,7 @@ module JS
             {% for key, i in exp.keys %}
               {{io}} << {{key.id.stringify}}
               {{io}} << ": "
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp[key]}}
               end
               {% if i < exp.size - 1 %}
@@ -186,25 +188,26 @@ module JS
             {% end %}
           {% elsif exp.is_a?(If) %}
             {{io}} << "if ("
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.cond}}
             end
             {{io}} << ") {"
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.then}}
             end
             {{io}} << "}"
             {% if exp.else %}
               {{io}} << " else {"
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp.else}}
               end
               {{io}} << "}"
             {% end %}
           {% elsif exp.is_a?(Assign) %}
+            {{exp.target}} = nil
             {{io}} << {{exp.target.stringify}}
             {{io}} << " = "
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.value}}
             end
             {% if !opts[:inline] %}
@@ -212,22 +215,22 @@ module JS
             {% end %}
           {% elsif exp.is_a?(Return) %}
             {{io}} << "return "
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.exp}}
             end
           {% elsif exp.is_a?(MacroIf) %}
             \{% if {{exp.cond}} %}
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) do
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do
                 {{exp.then}}
               end
             \{% else %}
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) do
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do
                 {{exp.else}}
               end
             \{% end %}
           {% elsif exp.is_a?(MacroFor) %}
             \{% for {{exp.vars.splat}} in {{exp.exp}} %}
-              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false}) do
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do
                 {{exp.body}}
               end
             \{% end %}
