@@ -170,6 +170,13 @@ module JS
             {% else %}
               {{io}} << {{exp.stringify}}
             {% end %}
+          {% elsif exp.is_a?(ArrayLiteral) %}
+            {{io}} << "["
+            {{io}} << {{exp.splat.stringify}}
+            {{io}} << "]"
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
           {% elsif exp.is_a?(HashLiteral) %}
             {{io}} << "{"
             {% for key, i in exp.keys %}
