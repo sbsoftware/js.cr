@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.2.0](http://github.com/sbsoftware/js.cr/releases/tag/v1.2.0)
+
+## Features
+* Local variables are recognized as such (#15)
+* Empty array literals can be assigned to variables (#16)
+
+## Bugs
+* Crystal namespaces are not reflected in JS class names (#14)
+* `#to_js_ref` doesn't work for call arguments
+
 ## [v1.1.1](https://github.com/sbsoftware/js.cr/releases/tag/v1.1.1)
 
 ## Bugs
