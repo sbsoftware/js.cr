@@ -114,11 +114,11 @@ module JS
                     end
                   {% end %}
                 {% elsif (exp.receiver.is_a?(Path) || exp.receiver.is_a?(TypeNode)) && exp.receiver.resolve? %}
-                  if {{exp.receiver}}.responds_to?(:to_js_ref)
+                  {% if exp.receiver.resolve.has_method?(:to_js_ref) %}
                     {{io}} << {{exp.receiver}}.to_js_ref
-                  else
+                  {% else %}
                     {{io}} << {{exp.receiver.stringify}}
-                  end
+                  {% end %}
                 {% else %}
                   {{io}} << {{exp.receiver.stringify}}
                 {% end %}
