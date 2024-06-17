@@ -29,10 +29,16 @@ module JS
         {% end %}
       end
 
-      JS::Code.def_to_js do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
-        _literal_js("function #{function_name}({{blk.args.splat}}) {")
-        {{blk.body}}
-        _literal_js("}")
+      def self.to_js(io : IO)
+        io << "function #{function_name}({{blk.args.splat}}) {"
+        JS::Code._eval_js_block(io, {{@type.resolve}}, {inline: false, nested_scope: true}) {{blk}}
+        io << "}"
+      end
+
+      def self.to_js
+        String.build do |str|
+          to_js(str)
+        end
       end
     end
 
