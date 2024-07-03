@@ -203,7 +203,7 @@ module JS
               {{exp.then}}
             end
             {{io}} << "}"
-            {% if exp.else %}
+            {% if !exp.else.is_a?(Nop) %}
               {{io}} << " else {"
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp.else}}

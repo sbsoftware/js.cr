@@ -16,7 +16,17 @@ module JS::Code::IfElseSpec
       if something == "test"
         console.log("Yeah!")
       else
-        console.log("Booo!")
+        if b == 1
+          console.log("Booo!")
+        end
+      end
+
+      if a == 7
+        console.log("7")
+      elsif a == 5
+        console.log("5")
+      else
+        console.log("else")
       end
     end
   end
@@ -39,7 +49,19 @@ module JS::Code::IfElseSpec
       if (something == "test") {
         console.log("Yeah!");
       } else {
-        console.log("Booo!");
+        if (b == 1) {
+          console.log("Booo!");
+        }
+      }
+
+      if (a == 7) {
+        console.log("7");
+      } else {
+        if (a == 5) {
+          console.log("5");
+        } else {
+          console.log("else");
+        }
       }
       JS
 
