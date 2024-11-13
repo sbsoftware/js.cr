@@ -4,7 +4,7 @@ require "./method"
 module JS
   abstract class Class
     @@js_extends : String?
-    @@static_properties = [] of String
+    @@static_properties = [] of Tuple(String, String)
     @@js_methods = [] of JS::Method.class
 
     def self.class_name
@@ -16,7 +16,7 @@ module JS
     end
 
     macro static(assignment)
-      @@static_properties << {{assignment.stringify}}
+      @@static_properties << { {{assignment.target.stringify}}, {{assignment.value}}.to_js_ref }
     end
 
     macro js_method(name, &blk)
@@ -43,9 +43,11 @@ module JS
         io << @@js_extends
       end
       io << " {"
-      @@static_properties.each do |prop|
+      @@static_properties.each do |(name, value)|
         io << "static "
-        io << prop
+        io << name
+        io << " = "
+        io << value
         io << ";"
       end
       @@js_methods.each do |js_method|
