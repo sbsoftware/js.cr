@@ -21,7 +21,7 @@ module JS
 
     macro js_method(name, &blk)
       class {{name.id.stringify.camelcase.id}} < JS::Method
-        def_to_js {{blk}}
+        def_to_js({{name}}) {{blk}}
       end
 
       @@js_methods << {{name.id.stringify.camelcase.id}}

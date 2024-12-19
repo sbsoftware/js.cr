@@ -7,6 +7,10 @@ module JS::Class::BasicSpec
     js_method :do_something do
       console.log(this.element.name)
     end
+
+    js_method :doAnotherThing do
+      console.log("Wuuaaahhh!")
+    end
   end
 
   describe "MyClass.to_js" do
@@ -15,6 +19,9 @@ module JS::Class::BasicSpec
       class JS_Class_BasicSpec_MyClass extends Controller {
         do_something() {
           console.log(this.element.name);
+        }
+        doAnotherThing() {
+          console.log("Wuuaaahhh!");
         }
       }
       JS
