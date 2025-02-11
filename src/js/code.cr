@@ -177,7 +177,7 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
-          {% elsif exp.is_a?(HashLiteral) %}
+          {% elsif exp.is_a?(HashLiteral) || exp.is_a?(NamedTupleLiteral) %}
             {{io}} << "{"
             {% for key, i in exp.keys %}
               {{io}} << {{key.id.stringify}}
@@ -225,6 +225,12 @@ module JS
             JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.exp}}
             end
+          {% elsif exp.is_a?(ProcLiteral) %}
+            {{io}} << "({{exp.args.map(&.name).splat}}) => {"
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+              {{exp.body}}
+            end
+            {{io}} << "}"
           {% elsif exp.is_a?(MacroIf) %}
             \{% if {{exp.cond}} %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do
