@@ -154,16 +154,24 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
-          {% elsif (exp.is_a?(Path) || exp.is_a?(TypeNode)) %}
-            {% if parse_type("#{namespace}::#{exp.id}").resolve? %}
+          {% elsif exp.is_a?(Path) %}
+            {% parent_namespace = namespace.stringify.split("::")[0..-2].join("::").id %}
+            {% relative_path = exp.global? ? exp.stringify.gsub(/\A::/, "") : exp %}
+            {% if exp.resolve? %}
+              if {{exp}}.responds_to?(:to_js_ref)
+                {{io}} << {{exp}}.to_js_ref
+              else
+                {{io}} << {{exp.stringify}}
+              end
+            {% elsif parse_type("#{namespace}::#{relative_path.id}").resolve? %}
               if {{namespace}}::{{exp}}.responds_to?(:to_js_ref)
                 {{io}} << {{namespace}}::{{exp}}.to_js_ref
               else
                 {{io}} << {{exp.stringify}}
               end
-            {% elsif exp.resolve? %}
-              if {{exp}}.responds_to?(:to_js_ref)
-                {{io}} << {{exp}}.to_js_ref
+            {% elsif parse_type("#{parent_namespace}::#{relative_path.id}").resolve? %}
+              if {{parent_namespace}}::{{exp}}.responds_to?(:to_js_ref)
+                {{io}} << {{parent_namespace}}::{{exp}}.to_js_ref
               else
                 {{io}} << {{exp.stringify}}
               end
