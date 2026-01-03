@@ -10,7 +10,9 @@ module JS
         str << function_name
         str << "("
         args.join(str, ", ") do |arg|
-          if arg.is_a?(String)
+          if arg.nil?
+            str << "undefined"
+          elsif arg.is_a?(String)
             str << "\"#{arg}\""
           else
             str << arg

@@ -45,5 +45,13 @@ module JS::Function::BasicSpec
 
       FunctionCode.to_js_call(2, 3).should eq(expected)
     end
+
+    it "should map nil to undefined" do
+      expected = <<-JS
+      my_func(undefined, "maah")
+      JS
+
+      FunctionCode.to_js_call(nil, "maah").should eq(expected)
+    end
   end
 end

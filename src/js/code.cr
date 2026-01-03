@@ -21,16 +21,17 @@ module JS
     end
 
     macro _eval_js_block(io, namespace, opts, &blk)
-      {% if blk.body.is_a?(Expressions) %}
-        {% if opts[:nested_scope] %}
-          {% for var in blk.body.expressions.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq %}
-            {{io}} << "var "
-            {{io}} << {{var}}
-            {{io}} << ";"
-          {% end %}
-        {% end %}
+      {% exps = blk.body.is_a?(Expressions) ? blk.body.expressions : [blk.body] %}
 
-        {% for exp in blk.body.expressions %}
+      {% if opts[:nested_scope] %}
+        {% for var in exps.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq %}
+          {{io}} << "var "
+          {{io}} << {{var}}
+          {{io}} << ";"
+        {% end %}
+      {% end %}
+
+      {% for exp in exps %}
           {% if exp.is_a?(Call) && exp.name.stringify == "_literal_js" %}
             {{io}} << {{exp.args.first}}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "to_js_call" %}
@@ -168,7 +169,14 @@ module JS
             {% end %}
           {% elsif exp.is_a?(ArrayLiteral) %}
             {{io}} << "["
-            {{io}} << {{exp.splat.stringify}}
+            {% for element, index in exp %}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+                {{element}}
+              end
+              {% if index < exp.size - 1 %}
+                {{io}} << ", "
+              {% end %}
+            {% end %}
             {{io}} << "]"
             {% if !opts[:inline] %}
               {{io}} << ";"
@@ -246,16 +254,13 @@ module JS
           {% elsif exp.is_a?(MacroExpression) || exp.is_a?(MacroLiteral) %}
             {{exp}}
           {% elsif exp.is_a?(NilLiteral) %}
-            # do nothing
+            {{io}} << "undefined"
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
           {% else %}
             {{io}} << {{exp.stringify}}
           {% end %}
-        {% end %}
-      {% else %}
-        JS::Code._eval_js_block({{io}}, {{namespace}}, {{opts}}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
-          nil
-          {{blk.body}}
-        end
       {% end %}
     end
   end
