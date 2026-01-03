@@ -41,6 +41,25 @@ module JS
             {% end %}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "to_js_ref" %}
             {{io}} << {{exp}}
+          {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "await" %}
+            {{io}} << "await "
+            {% if exp.args.size > 0 %}
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+                {{exp.args.first}}
+              end
+            {% end %}
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
+          {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "async" && exp.block %}
+            {{io}} << "async function("
+            {{io}} << {{exp.block.args.splat.stringify}}
+            {{io}} << ") {"
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: true}) {{exp.block}}
+            {{io}} << "}"
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "new" %}
             {{io}} << "new "
             JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}

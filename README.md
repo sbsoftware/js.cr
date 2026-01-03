@@ -8,10 +8,12 @@ An experimental tool to generate JavaScript code from Crystal code.
 * [Examples](#examples)
   * [Code Snippets](#javascript-code)
     * [`_call`](#_call)
+    * [`async` / `await`](#async--await)
   * [Functions](#javascript-functions)
   * [Classes](#javascript-classes)
   * [Files](#javascript-files)
     * [Aliases](#aliases)
+    * [Async Functions](#async-functions)
   * [Modules](#javascript-modules)
   * [Loops](#loops)
 
@@ -66,6 +68,26 @@ end
 puts MyCallCode.to_js
 ```
 
+#### `async` / `await`
+
+You can build anonymous async functions with `async do ... end`, and `await(...)` prefixes the awaited expression in the JS output.
+
+```crystal
+require "js"
+
+class MyAsyncSnippet < JS::Code
+  def_to_js do
+    handler = async do |event|
+      console.log(event)
+    end
+
+    response = await(fetch("/data"))
+  end
+end
+
+puts MyAsyncSnippet.to_js
+```
+
 ### JavaScript Functions
 
 If you were wondering how to define a function within `JS::Code.def_to_js` - that's not possible. Well, technically it is via a `_literal_js` call but that's dirty and there is a better way:
@@ -80,6 +102,20 @@ class MyFunction < JS::Function
 end
 
 puts MyFunction.to_js
+```
+
+To generate an async function, pass `async: true`.
+
+```crystal
+require "js"
+
+class MyAsyncFunction < JS::Function
+  def_to_js :my_async, async: true do |foo|
+    console.log(foo)
+  end
+end
+
+puts MyAsyncFunction.to_js
 ```
 
 You _could_ have that printed into a `<script>` tag again via `.to_js` and reference it in an `onclick` attribute by calling `.to_js_call`. Not sure how hip that is anymore.
@@ -142,6 +178,26 @@ class MyFile < JS::File
 end
 
 puts MyFile.to_js
+```
+
+#### Async Functions
+
+If you want async functions inside a `JS::File`, use `async_js_function`.
+
+```crystal
+require "js"
+
+class MyAsyncFile < JS::File
+  async_js_function :load_data do
+    console.log("loading")
+  end
+
+  def_to_js do
+    load_data.to_js_call
+  end
+end
+
+puts MyAsyncFile.to_js
 ```
 
 #### Aliases

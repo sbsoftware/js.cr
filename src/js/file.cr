@@ -33,6 +33,18 @@ module JS
       end
     end
 
+    macro async_js_function(name, &blk)
+      class {{name.id.stringify.camelcase.id}} < JS::Function
+        def_to_js({{name.id.stringify}}, async: true) {{blk}}
+      end
+
+      @@js_functions << {{name.id.stringify.camelcase.id}}
+
+      def self.{{name.id}}
+        {{name.id.stringify.camelcase.id}}
+      end
+    end
+
     macro def_to_js(&blk)
       def_to_js({{@type}}) {{blk}}
     end

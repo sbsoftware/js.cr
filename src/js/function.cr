@@ -22,7 +22,7 @@ module JS
       end
     end
 
-    macro def_to_js(name, &blk)
+    macro def_to_js(name, async = false, &blk)
       def self.function_name
         {% if name.is_a?(StringLiteral) || name.is_a?(Symbol) %}
           {{name.id.stringify}}
@@ -32,7 +32,11 @@ module JS
       end
 
       def self.to_js(io : IO)
-        io << "function #{function_name}({{blk.args.splat}}) {"
+        {% if async %}
+          io << "async function #{function_name}({{blk.args.splat}}) {"
+        {% else %}
+          io << "function #{function_name}({{blk.args.splat}}) {"
+        {% end %}
         JS::Code._eval_js_block(io, {{@type.resolve}}, {inline: false, nested_scope: true}) {{blk}}
         io << "}"
       end
@@ -46,6 +50,10 @@ module JS
 
     macro def_to_js(&blk)
       def_to_js(self.name.split("::")[-1].underscore) {{blk}}
+    end
+
+    macro def_to_js(async, &blk)
+      def_to_js(self.name.split("::")[-1].underscore, async: {{async}}) {{blk}}
     end
   end
 end
