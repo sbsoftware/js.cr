@@ -8,7 +8,7 @@ module JS::Code::ProcSpec
       this.timer = setInterval(-> { console.log("Later!") }, 3000)
 
       obj = {
-        get: ->(foo, bar) { foo.myGet(bar) }
+        get: ->(foo, bar) { foo.myGet(bar) },
       }
     end
   end

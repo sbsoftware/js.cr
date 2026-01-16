@@ -149,14 +149,32 @@ module JS
               {% if exp.name.stringify != "_call" %}
                 {{io}} << {{JS_ALIASES[exp.name.stringify] || exp.name.stringify}}
               {% end %}
-              {% if exp.args.size > 0 || exp.block || exp.name.stringify == "_call" %}
+              {% has_named_args = !exp.named_args.is_a?(Nop) %}
+              {% if exp.args.size > 0 || exp.block || exp.name.stringify == "_call" || has_named_args %}
                 {{io}} << "("
               {% end %}
               {% for arg, index in exp.args %}
                 JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                   {{arg}}
                 end
-                {% if index < exp.args.size - 1 || exp.block %}
+                {% if index < exp.args.size - 1 || exp.block || has_named_args %}
+                  {{io}} << ", "
+                {% end %}
+              {% end %}
+              {% if has_named_args %}
+                {{io}} << "{"
+                {% for named_arg, index in exp.named_args %}
+                  {{io}} << {{named_arg.name.stringify}}
+                  {{io}} << ": "
+                  JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+                    {{named_arg.value}}
+                  end
+                  {% if index < exp.named_args.size - 1 %}
+                    {{io}} << ", "
+                  {% end %}
+                {% end %}
+                {{io}} << "}"
+                {% if exp.block %}
                   {{io}} << ", "
                 {% end %}
               {% end %}
@@ -167,7 +185,7 @@ module JS
                 JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: true}) {{exp.block}}
                 {{io}} << "}"
               {% end %}
-              {% if exp.args.size > 0 || exp.block || exp.name.stringify == "_call" %}
+              {% if exp.args.size > 0 || exp.block || exp.name.stringify == "_call" || has_named_args %}
                 {{io}} << ")"
               {% end %}
             {% end %}
@@ -245,12 +263,15 @@ module JS
             {% end %}
           {% elsif exp.is_a?(Return) %}
             {{io}} << "return "
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
               {{exp.exp}}
             end
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
           {% elsif exp.is_a?(ProcLiteral) %}
             {{io}} << "({{exp.args.map(&.name).splat}}) => {"
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
               {{exp.body}}
             end
             {{io}} << "}"
