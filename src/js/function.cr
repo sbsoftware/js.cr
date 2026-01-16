@@ -12,10 +12,8 @@ module JS
         args.join(str, ", ") do |arg|
           if arg.nil?
             str << "undefined"
-          elsif arg.is_a?(String)
-            str << "\"#{arg}\""
           else
-            str << arg
+            str << arg.to_js_ref
           end
         end
         str << ")"
