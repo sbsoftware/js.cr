@@ -110,7 +110,26 @@ module JS
               {{io}} << ";"
             {% end %}
           {% elsif exp.is_a?(Call) %}
-            {% if exp.receiver && exp.args.size == 1 && OPERATOR_CALL_NAMES.includes?(exp.name.stringify) %}
+            {% crystal_call = false %}
+            {% if !exp.receiver && exp.args.empty? && exp.block.is_a?(Nop) && exp.named_args.is_a?(Nop) && namespace.resolve.class.has_method?(exp.name.stringify) %}
+              {% crystal_call = true %}
+            {% elsif exp.receiver.is_a?(Call) && exp.receiver.name.stringify == "new" && exp.receiver.receiver.is_a?(Path) %}
+              {% parent_namespace = namespace.stringify.split("::")[0..-2].join("::").id %}
+              {% receiver_path = exp.receiver.receiver %}
+              {% relative_receiver = receiver_path.global? ? receiver_path.stringify.gsub(/\A::/, "") : receiver_path %}
+              {% if (recv_type = parse_type("#{namespace}::#{relative_receiver.id}").resolve?) %}
+                {% if recv_type.has_method?(exp.name.stringify) %}
+                  {% crystal_call = true %}
+                {% end %}
+              {% elsif (recv_type = parse_type("#{parent_namespace}::#{relative_receiver.id}").resolve?) %}
+                {% if recv_type.has_method?(exp.name.stringify) %}
+                  {% crystal_call = true %}
+                {% end %}
+              {% end %}
+            {% end %}
+            {% if crystal_call %}
+              {{io}} << {{exp}}.to_js_ref
+            {% elsif exp.receiver && exp.args.size == 1 && OPERATOR_CALL_NAMES.includes?(exp.name.stringify) %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false}) do {{ blk.args.empty? ? "".id : "|#{blk.args.splat}|".id }}
                 {{exp.receiver}}
               end
