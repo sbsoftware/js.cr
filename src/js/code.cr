@@ -38,21 +38,34 @@ module JS
 
     macro _strict_validate_expression(namespace, exp, locals)
       {% if exp.is_a?(Call) %}
-        {% call_name = exp.name.id.stringify.gsub(/\A"|"\z/, "") %}
+        {% call_name = exp.name.stringify.gsub(/\A"|"\z/, "") %}
 
         {% if !exp.receiver && call_name == "_literal_js" %}
-          {% exp.raise "Strict mode forbids `_literal_js(...)`. Use typed wrappers (for example `JS::Browser::Console`) or `js_alias` declarations instead." %}
+          {% exp.raise "Strict mode forbids `_literal_js(...)`. Use typed browser context calls (for example `console.log(...)`) or `js_alias` declarations instead." %}
         {% end %}
 
         {% if exp.receiver %}
           JS::Code._strict_validate_node({{namespace}}, {{exp.receiver}}, {{locals.empty? ? "[] of String".id : locals}})
+          {% if exp.receiver.is_a?(Call) && !exp.receiver.receiver %}
+            {% receiver_name = exp.receiver.name.id.stringify.gsub(/\A"|"\z/, "") %}
+            {% if receiver_name == "console" %}
+              {% console_type = parse_type("JS::Browser::Console").resolve? %}
+              {% if console_type.is_a?(TypeNode) && !console_type.has_method?(exp.name) %}
+                {% exp.raise "Strict mode: `console` has no typed `#{call_name}` method. Supported methods are `log`, `info`, `warn`, and `error`." %}
+              {% end %}
+            {% end %}
+          {% end %}
         {% elsif !STRICT_MODE_HELPER_CALL_NAMES.includes?(call_name) && call_name != "new" && call_name != "_call" && call_name != "[]" && call_name != "[]=" && !OPERATOR_CALL_NAMES.includes?(call_name) %}
           {% namespace_declares_call = false %}
           {% if (namespace_type = parse_type(namespace.stringify).resolve?) && namespace_type.is_a?(TypeNode) && namespace_type.class.has_method?(exp.name) %}
             {% namespace_declares_call = true %}
           {% end %}
+          {% browser_context_declares_call = false %}
+          {% if (browser_context_type = parse_type("JS::Browser::Context").resolve?) && browser_context_type.is_a?(TypeNode) && browser_context_type.has_method?(exp.name) && exp.args.empty? && exp.named_args.is_a?(Nop) && !exp.block %}
+            {% browser_context_declares_call = true %}
+          {% end %}
 
-          {% unless locals.includes?(call_name) || JS_ALIASES.has_key?(call_name) || namespace_declares_call %}
+          {% unless locals.includes?(call_name) || JS_ALIASES.has_key?(call_name) || namespace_declares_call || browser_context_declares_call %}
             {% exp.raise "Strict mode: undeclared JS identifier `#{call_name}`. Declare externs with `js_alias \"#{call_name}\", \"...\"` or use a typed wrapper." %}
           {% end %}
         {% end %}
@@ -245,6 +258,7 @@ module JS
                 {{exp.args.first}}
               end
             {% else %}
+              {% emitted_from_browser_context = false %}
               {% if exp.receiver %}
                 # TODO: Replace this whole `if` by a recursive call to this macro?
                 {% if exp.receiver.is_a?(Call) %}
@@ -269,8 +283,13 @@ module JS
                 {% if exp.name.stringify != "_call" %}
                   {{io}} << "."
                 {% end %}
+              {% elsif opts[:strict] && exp.args.empty? && exp.named_args.is_a?(Nop) && !exp.block %}
+                {% if (browser_context_type = parse_type("JS::Browser::Context").resolve?) && browser_context_type.is_a?(TypeNode) && browser_context_type.has_method?(exp.name) %}
+                  {{io}} << JS::Browser.default_context.{{exp.name}}.to_js_ref
+                  {% emitted_from_browser_context = true %}
+                {% end %}
               {% end %}
-              {% if exp.name.stringify != "_call" %}
+              {% if exp.name.stringify != "_call" && !emitted_from_browser_context %}
                 {{io}} << {{JS_ALIASES[exp.name.stringify] || exp.name.stringify}}
               {% end %}
               {% has_named_args = !exp.named_args.is_a?(Nop) %}

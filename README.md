@@ -112,26 +112,27 @@ class MyStrictCode < JS::Code
 
   def_to_js strict: true do
     doc.querySelector("body")
-    JS::Browser::Console.log("ready")
+    console.log("ready")
   end
 end
 ```
 
 ### Browser API Wrappers
 
-`JS::Browser::Console` is available as a typed wrapper for `console` with:
+In strict mode, method calls without an explicit receiver are resolved against a default browser context object.
+For now, this context exposes `console` with:
 
 - `log`
 - `info`
 - `warn`
 - `error`
 
-Use it as a Crystal type/constant instead of `_literal_js` strings:
+Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 
 ```crystal
 class MyConsoleCode < JS::Code
-  def_to_js do
-    JS::Browser::Console.log("Hello", 7, true)
+  def_to_js strict: true do
+    console.log("Hello", 7, true)
   end
 end
 ```
@@ -140,11 +141,13 @@ end
 
 Use this pattern for additional browser APIs:
 
-1. Add a wrapper under `src/js/browser/<api>.cr` in `JS::Browser`.
-2. Implement `to_js_ref` to map the wrapper type to its JS global/object path.
-3. Add typed class methods for the supported API surface (start narrow, expand later).
-4. Add specs that:
+1. Add/update `JS::Browser::Context` with the new receiverless entrypoint (like `console`).
+2. Add a wrapper under `src/js/browser/<api>.cr` in `JS::Browser`.
+3. Implement `to_js_ref` to map the wrapper to its JS global/object path.
+4. Make wrapper methods return `JS::Browser::MethodCall` so chained calls can keep building `to_js_ref`.
+5. Add specs that:
    - verify JS output from wrapper calls;
+   - verify `JS::Browser.default_context.<entrypoint>...to_js_ref` chain building;
    - verify strict mode acceptance when wrappers are used;
    - verify strict mode failures for undeclared identifiers / `_literal_js`.
 

@@ -7,7 +7,7 @@ module JS::Module::StrictModeSpec
 
     def_to_js strict: true do
       title = doc.querySelector("title")
-      JS::Browser::Console.log(title)
+      console.log(title)
     end
   end
 

@@ -6,7 +6,7 @@ module JS::Code::StrictModeSpec
 
     def_to_js strict: true do
       doc.querySelector("body")
-      JS::Browser::Console.info("ready")
+      console.info("ready")
     end
   end
 
@@ -70,6 +70,25 @@ module JS::Code::StrictModeSpec
       exit_code, _stdout, stderr = crystal_eval(source)
       exit_code.should_not eq(0)
       stderr.should contain("Strict mode forbids `_literal_js(...)`")
+    end
+
+    it "fails on unsupported console methods in strict mode" do
+      source = <<-CR
+      require "./src/js"
+
+      class StrictConsoleMethodCode < JS::Code
+        def_to_js strict: true do
+          console.debug("nope")
+        end
+      end
+
+      puts StrictConsoleMethodCode.to_js
+      CR
+
+      exit_code, _stdout, stderr = crystal_eval(source)
+      exit_code.should_not eq(0)
+      stderr.should contain("`console` has no typed")
+      stderr.should contain("debug")
     end
   end
 end
