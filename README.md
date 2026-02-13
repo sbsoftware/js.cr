@@ -9,6 +9,8 @@ An experimental tool to generate JavaScript code from Crystal code.
   * [Code Snippets](#javascript-code)
     * [`_call`](#_call)
     * [`async` / `await`](#async--await)
+    * [Strict Mode (opt-in)](#strict-mode-opt-in)
+  * [Browser API Wrappers](#browser-api-wrappers)
   * [Functions](#javascript-functions)
   * [Classes](#javascript-classes)
   * [Files](#javascript-files)
@@ -87,6 +89,64 @@ end
 
 puts MyAsyncSnippet.to_js
 ```
+
+#### Strict Mode (opt-in)
+
+You can enable strict mode per generated unit:
+
+- `JS::Code`: `def_to_js strict: true do ... end`
+- `JS::File`: `def_to_js strict: true do ... end`
+- `JS::Module`: `def_to_js strict: true do ... end`
+
+In strict mode:
+
+- Referencing/calling undeclared JS identifiers raises a compile-time error.
+- `js_alias` is the explicit extern declaration escape hatch.
+- `_literal_js(...)` is rejected at compile-time.
+
+```crystal
+require "js"
+
+class MyStrictCode < JS::Code
+  js_alias "doc", "document"
+
+  def_to_js strict: true do
+    doc.querySelector("body")
+    JS::Browser::Console.log("ready")
+  end
+end
+```
+
+### Browser API Wrappers
+
+`JS::Browser::Console` is available as a typed wrapper for `console` with:
+
+- `log`
+- `info`
+- `warn`
+- `error`
+
+Use it as a Crystal type/constant instead of `_literal_js` strings:
+
+```crystal
+class MyConsoleCode < JS::Code
+  def_to_js do
+    JS::Browser::Console.log("Hello", 7, true)
+  end
+end
+```
+
+#### Adding wrappers iteratively
+
+Use this pattern for additional browser APIs:
+
+1. Add a wrapper under `src/js/browser/<api>.cr` in `JS::Browser`.
+2. Implement `to_js_ref` to map the wrapper type to its JS global/object path.
+3. Add typed class methods for the supported API surface (start narrow, expand later).
+4. Add specs that:
+   - verify JS output from wrapper calls;
+   - verify strict mode acceptance when wrappers are used;
+   - verify strict mode failures for undeclared identifiers / `_literal_js`.
 
 ### JavaScript Functions
 

@@ -14,7 +14,11 @@ module JS
 
       def self.to_js(io : IO)
         io << "#{function_name}({{blk.args.splat}}) {"
-        JS::Code._eval_js_block(io, {{@type.resolve}}, {inline: false, nested_scope: true}) {{blk}}
+        JS::Code._eval_js_block(
+          io,
+          {{@type.resolve}},
+          {inline: false, nested_scope: true, strict: false, locals: [] of String}
+        ) {{blk}}
         io << "}"
       end
 

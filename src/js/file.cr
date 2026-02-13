@@ -45,11 +45,11 @@ module JS
       end
     end
 
-    macro def_to_js(&blk)
-      def_to_js({{@type}}) {{blk}}
+    macro def_to_js(strict = false, &blk)
+      def_to_js({{@type}}, strict: {{strict}}) {{blk}}
     end
 
-    macro def_to_js(namespace, &blk)
+    macro def_to_js(namespace, strict = false, &blk)
       def self.to_js(io : IO)
         @@js_classes.each do |js_class|
           js_class.to_js(io)
@@ -57,7 +57,11 @@ module JS
         @@js_functions.each do |func|
           func.to_js(io)
         end
-        JS::Code._eval_js_block(io, {{namespace}}, {inline: false, nested_scope: true}) {{blk}}
+        JS::Code._eval_js_block(
+          io,
+          {{namespace}},
+          {inline: false, nested_scope: true, strict: {{strict}}, locals: [] of String}
+        ) {{blk}}
       end
 
       def self.to_js

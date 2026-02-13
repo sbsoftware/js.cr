@@ -37,7 +37,11 @@ module JS
         {% else %}
           io << "function #{function_name}({{blk.args.splat}}) {"
         {% end %}
-        JS::Code._eval_js_block(io, {{@type.resolve}}, {inline: false, nested_scope: true}) {{blk}}
+        JS::Code._eval_js_block(
+          io,
+          {{@type.resolve}},
+          {inline: false, nested_scope: true, strict: false, locals: [] of String}
+        ) {{blk}}
         io << "}"
       end
 
