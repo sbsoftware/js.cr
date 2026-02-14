@@ -1,3 +1,3 @@
 require "./js/module"
-require "./js/browser/*"
+require "./js/context/*"
 require "./ext/*"

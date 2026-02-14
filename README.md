@@ -141,15 +141,14 @@ end
 
 Use this pattern for additional browser APIs:
 
-1. Add/update `JS::Browser::Context` with the new receiverless entrypoint (like `console`).
-2. Add a wrapper under `src/js/browser/<api>.cr` in `JS::Browser`.
-3. Inherit browser wrappers from `JS::Browser::ContextObject`, which stores the current JS call chain and provides call-chain initialization.
-4. Return a typed browser context object from each wrapper method (for now, `console.log/info/warn/error` return `JS::Browser::Undefined`).
+1. Add/update `JS::Context::Browser` with the new receiverless entrypoint (like `console`).
+2. Add a wrapper under `src/js/context/<api>.cr` in `JS::Context`.
+3. Inherit browser wrappers from `JS::Context::ContextObject`, which stores the current JS call chain and provides call-chain initialization.
+4. Return a typed browser context object from each wrapper method (for now, `console.log/info/warn/error` return `JS::Context::Undefined`).
 5. Add specs that:
    - verify JS output from wrapper calls;
    - verify typed return wrappers and their `to_js_ref` output;
-   - verify strict mode acceptance when wrappers are used;
-   - verify strict mode failures for undeclared identifiers / `_literal_js`.
+   - verify strict mode acceptance when wrappers are used.
 
 ### JavaScript Functions
 
