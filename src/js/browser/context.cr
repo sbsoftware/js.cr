@@ -1,3 +1,5 @@
+require "./console"
+
 module JS
   module Browser
     class Context

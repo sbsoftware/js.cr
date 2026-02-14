@@ -23,15 +23,12 @@ module JS::Browser::APISpec
     end
   end
 
-  describe "method call wrapper chains" do
-    it "builds chained JS references transitively" do
-      ref = JS::Browser.default_context.console
-        .log("Hello")
-        .call("next_step", "done")
-        ._call
-        .to_js_ref
+  describe "typed console return value" do
+    it "returns an Undefined context wrapper exposing to_js_ref" do
+      result = JS::Browser.default_context.console.log("Hello")
 
-      ref.should eq("console.log(\"Hello\").next_step(\"done\")()")
+      result.should be_a(JS::Browser::Undefined)
+      result.to_js_ref.should eq("console.log(\"Hello\")")
     end
   end
 end
