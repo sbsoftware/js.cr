@@ -101,17 +101,13 @@ You can enable strict mode per generated unit:
 In strict mode:
 
 - Referencing/calling undeclared JS identifiers raises a compile-time error.
-- `js_alias` is the explicit extern declaration escape hatch.
 - `_literal_js(...)` is rejected at compile-time.
 
 ```crystal
 require "js"
 
 class MyStrictCode < JS::Code
-  js_alias "doc", "document"
-
   def_to_js strict: true do
-    doc.querySelector("body")
     console.log("ready")
   end
 end
