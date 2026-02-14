@@ -1,7 +1,6 @@
 module JS
   abstract class Code
-    OPERATOR_CALL_NAMES           = %w[+ - * / ** ^ // & | && || > >= < <= == !=]
-    STRICT_MODE_HELPER_CALL_NAMES = %w[await async to_js_call to_js_ref]
+    OPERATOR_CALL_NAMES = %w[+ - * / ** ^ // & | && || > >= < <= == !=]
 
     JS_ALIASES = {} of String => String
 
@@ -25,131 +24,11 @@ module JS
       end
     end
 
-    macro _strict_validate_node(namespace, node, locals)
-      {% if node.is_a?(Nop) %}
-      {% elsif node.is_a?(Expressions) %}
-        {% for node_exp in node.expressions %}
-          JS::Code._strict_validate_expression({{namespace}}, {{node_exp}}, {{locals.empty? ? "[] of String".id : locals}})
-        {% end %}
-      {% else %}
-        JS::Code._strict_validate_expression({{namespace}}, {{node}}, {{locals.empty? ? "[] of String".id : locals}})
-      {% end %}
-    end
-
-    macro _strict_validate_expression(namespace, exp, locals)
-      {% if exp.is_a?(Call) %}
-        {% call_name = exp.name.stringify.gsub(/\A"|"\z/, "") %}
-
-        {% if !exp.receiver && call_name == "_literal_js" %}
-          {% exp.raise "Strict mode forbids `_literal_js(...)`. Use typed browser context calls (for example `console.log(...)`) or `js_alias` declarations instead." %}
-        {% end %}
-
-        {% if exp.receiver %}
-          JS::Code._strict_validate_node({{namespace}}, {{exp.receiver}}, {{locals.empty? ? "[] of String".id : locals}})
-        {% elsif !STRICT_MODE_HELPER_CALL_NAMES.includes?(call_name) && call_name != "new" && call_name != "_call" && call_name != "[]" && call_name != "[]=" && !OPERATOR_CALL_NAMES.includes?(call_name) %}
-          {% namespace_declares_call = false %}
-          {% if (namespace_type = parse_type(namespace.stringify).resolve?) && namespace_type.is_a?(TypeNode) && namespace_type.class.has_method?(exp.name) %}
-            {% namespace_declares_call = true %}
-          {% end %}
-          {% browser_context_declares_call = false %}
-          {% if (browser_context_type = parse_type("JS::Browser::Context").resolve?) && browser_context_type.is_a?(TypeNode) && browser_context_type.has_method?(exp.name) && exp.args.empty? && exp.named_args.is_a?(Nop) && !exp.block %}
-            {% browser_context_declares_call = true %}
-          {% end %}
-
-          {% unless locals.includes?(call_name) || JS_ALIASES.has_key?(call_name) || namespace_declares_call || browser_context_declares_call %}
-            {% exp.raise "Strict mode: undeclared JS identifier `#{call_name}`. Declare externs with `js_alias \"#{call_name}\", \"...\"` or use a typed wrapper." %}
-          {% end %}
-        {% end %}
-
-        {% for arg in exp.args %}
-          JS::Code._strict_validate_expression({{namespace}}, {{arg}}, {{locals.empty? ? "[] of String".id : locals}})
-        {% end %}
-
-        {% unless exp.named_args.is_a?(Nop) %}
-          {% for named_arg in exp.named_args %}
-            JS::Code._strict_validate_expression({{namespace}}, {{named_arg.value}}, {{locals.empty? ? "[] of String".id : locals}})
-          {% end %}
-        {% end %}
-
-        {% if exp.block %}
-          {% block_exps = exp.block.body.is_a?(Expressions) ? exp.block.body.expressions : [exp.block.body] %}
-          {% block_assigned_locals = block_exps.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify } %}
-          {% block_locals = (locals + exp.block.args.map(&.id.stringify) + block_assigned_locals).uniq %}
-          {% for block_exp in block_exps %}
-            JS::Code._strict_validate_expression({{namespace}}, {{block_exp}}, {{block_locals.empty? ? "[] of String".id : block_locals}})
-          {% end %}
-        {% end %}
-      {% elsif exp.is_a?(Path) %}
-        {% parent_namespace = namespace.stringify.split("::")[0..-2].join("::").id %}
-        {% relative_path = exp.global? ? exp.stringify.gsub(/\A::/, "") : exp %}
-        {% path_name = exp.stringify.gsub(/\A"|"\z/, "") %}
-        {% path_declared = false %}
-
-        {% if (type = exp.resolve?) && type.is_a?(TypeNode) && type.class.has_method?("to_js_ref") %}
-          {% path_declared = true %}
-        {% elsif (type = parse_type("#{namespace}::#{relative_path.id}").resolve?) && type.is_a?(TypeNode) && type.class.has_method?("to_js_ref") %}
-          {% path_declared = true %}
-        {% elsif (type = parse_type("#{parent_namespace}::#{relative_path.id}").resolve?) && type.is_a?(TypeNode) && type.class.has_method?("to_js_ref") %}
-          {% path_declared = true %}
-        {% end %}
-
-        {% unless path_declared || locals.includes?(path_name) || JS_ALIASES.has_key?(path_name) %}
-          {% exp.raise "Strict mode: undeclared JS identifier `#{path_name}`. Declare externs with `js_alias` or use a typed wrapper exposing `to_js_ref`." %}
-        {% end %}
-      {% elsif exp.is_a?(Var) %}
-        {% var_name = exp.stringify %}
-        {% unless var_name == "self" || locals.includes?(var_name) || JS_ALIASES.has_key?(var_name) %}
-          {% exp.raise "Strict mode: undeclared JS identifier `#{var_name}`. Declare externs with `js_alias` or assign/bind it before use." %}
-        {% end %}
-      {% elsif exp.is_a?(Assign) %}
-        JS::Code._strict_validate_expression({{namespace}}, {{exp.value}}, {{locals.empty? ? "[] of String".id : locals}})
-      {% elsif exp.is_a?(If) %}
-        JS::Code._strict_validate_expression({{namespace}}, {{exp.cond}}, {{locals.empty? ? "[] of String".id : locals}})
-        JS::Code._strict_validate_node({{namespace}}, {{exp.then}}, {{locals.empty? ? "[] of String".id : locals}})
-        JS::Code._strict_validate_node({{namespace}}, {{exp.else}}, {{locals.empty? ? "[] of String".id : locals}})
-      {% elsif exp.is_a?(ArrayLiteral) %}
-        {% for element in exp %}
-          JS::Code._strict_validate_expression({{namespace}}, {{element}}, {{locals.empty? ? "[] of String".id : locals}})
-        {% end %}
-      {% elsif exp.is_a?(HashLiteral) || exp.is_a?(NamedTupleLiteral) %}
-        {% for key in exp.keys %}
-          JS::Code._strict_validate_expression({{namespace}}, {{exp[key]}}, {{locals.empty? ? "[] of String".id : locals}})
-        {% end %}
-      {% elsif exp.is_a?(Return) %}
-        JS::Code._strict_validate_node({{namespace}}, {{exp.exp}}, {{locals.empty? ? "[] of String".id : locals}})
-      {% elsif exp.is_a?(ProcLiteral) %}
-        {% proc_body_exps = exp.body.is_a?(Expressions) ? exp.body.expressions : [exp.body] %}
-        {% proc_assigned_locals = proc_body_exps.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify } %}
-        {% proc_locals = (locals + exp.args.map(&.name.stringify) + proc_assigned_locals).uniq %}
-        {% for proc_exp in proc_body_exps %}
-          JS::Code._strict_validate_expression({{namespace}}, {{proc_exp}}, {{proc_locals.empty? ? "[] of String".id : proc_locals}})
-        {% end %}
-      {% elsif exp.is_a?(MacroIf) %}
-        \{% if {{exp.cond}} %}
-          JS::Code._strict_validate_node({{namespace}}, {{exp.then}}, {{locals.empty? ? "[] of String".id : locals}})
-        \{% else %}
-          JS::Code._strict_validate_node({{namespace}}, {{exp.else}}, {{locals.empty? ? "[] of String".id : locals}})
-        \{% end %}
-      {% elsif exp.is_a?(MacroFor) %}
-        \{% for {{exp.vars.splat}} in {{exp.exp}} %}
-          JS::Code._strict_validate_node({{namespace}}, {{exp.body}}, {{locals.empty? ? "[] of String".id : locals}})
-        \{% end %}
-      {% elsif exp.is_a?(MacroExpression) || exp.is_a?(MacroLiteral) || exp.is_a?(NilLiteral) || exp.is_a?(NumberLiteral) || exp.is_a?(StringLiteral) || exp.is_a?(BoolLiteral) || exp.is_a?(SymbolLiteral) || exp.is_a?(RegexLiteral) || exp.is_a?(RangeLiteral) || exp.is_a?(TupleLiteral) || exp.is_a?(TypeNode) || exp.is_a?(Nop) %}
-      {% else %}
-      {% end %}
-    end
-
     macro _eval_js_block(io, namespace, opts, &blk)
       {% exps = blk.body.is_a?(Expressions) ? blk.body.expressions : [blk.body] %}
       {% block_args = blk.args.map(&.id.stringify) %}
       {% block_assigned_locals = exps.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify } %}
       {% current_locals = (opts[:locals] + block_args + block_assigned_locals).uniq %}
-
-      {% if opts[:strict] %}
-        {% for exp in exps %}
-          JS::Code._strict_validate_expression({{namespace}}, {{exp}}, {{current_locals.empty? ? "[] of String".id : current_locals}})
-        {% end %}
-      {% end %}
 
       {% if opts[:nested_scope] %}
         {% for var in exps.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq %}
@@ -160,7 +39,7 @@ module JS
       {% end %}
 
       {% for exp in exps %}
-          {% if exp.is_a?(Call) && exp.name.stringify == "_literal_js" %}
+          {% if exp.is_a?(Call) && exp.name.stringify == "_literal_js" && !opts[:strict] %}
             {{io}} << {{exp.args.first}}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "to_js_call" %}
             {{io}} << {{exp}}
@@ -249,6 +128,15 @@ module JS
                 {{exp.args.first}}
               end
             {% else %}
+              {% if opts[:strict] && !exp.receiver && !JS_ALIASES.has_key?(exp.name.stringify) %}
+                {% namespace_declares_call = false %}
+                {% if (namespace_type = parse_type(namespace.stringify).resolve?) && namespace_type.is_a?(TypeNode) && namespace_type.class.has_method?(exp.name) %}
+                  {% namespace_declares_call = true %}
+                {% end %}
+                {% unless namespace_declares_call %}
+                  JS::Browser.default_context.{{exp.name}}
+                {% end %}
+              {% end %}
               {% emitted_from_browser_context = false %}
               {% if exp.receiver %}
                 # TODO: Replace this whole `if` by a recursive call to this macro?
