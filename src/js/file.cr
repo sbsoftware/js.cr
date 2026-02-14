@@ -60,7 +60,7 @@ module JS
         JS::Code._eval_js_block(
           io,
           {{namespace}},
-          {inline: false, nested_scope: true, strict: {{strict}}, locals: [] of String}
+          {inline: false, nested_scope: true, strict: {{strict}}}
         ) {{blk}}
       end
 
