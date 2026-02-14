@@ -1,15 +1,15 @@
 require "./console"
 
 module JS
-  module Browser
-    class Context
-      def console : JS::Browser::Console
-        JS::Browser::Console.new
+  module Context
+    class Browser
+      def console : JS::Context::Console
+        JS::Context::Console.new
       end
     end
 
-    def self.default_context : JS::Browser::Context
-      JS::Browser::Context.new
+    def self.default : JS::Context::Browser
+      JS::Context::Browser.new
     end
   end
 end

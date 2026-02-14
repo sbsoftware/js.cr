@@ -126,9 +126,9 @@ module JS
               end
             {% else %}
               {% if opts[:strict] && !exp.receiver && !JS_ALIASES.has_key?(exp.name.stringify) %}
-                JS::Browser.default_context.{{exp.name}}
+                JS::Context.default.{{exp.name}}
               {% end %}
-              {% emitted_from_browser_context = false %}
+              {% emitted_from_strict_context = false %}
               {% if exp.receiver %}
                 # TODO: Replace this whole `if` by a recursive call to this macro?
                 {% if exp.receiver.is_a?(Call) %}
@@ -154,10 +154,10 @@ module JS
                   {{io}} << "."
                 {% end %}
               {% elsif opts[:strict] && exp.args.empty? && exp.named_args.is_a?(Nop) && !exp.block && !JS_ALIASES.has_key?(exp.name.stringify) %}
-                  {{io}} << JS::Browser.default_context.{{exp.name}}.to_js_ref
-                  {% emitted_from_browser_context = true %}
+                  {{io}} << JS::Context.default.{{exp.name}}.to_js_ref
+                  {% emitted_from_strict_context = true %}
               {% end %}
-              {% if exp.name.stringify != "_call" && !emitted_from_browser_context %}
+              {% if exp.name.stringify != "_call" && !emitted_from_strict_context %}
                 {{io}} << {{JS_ALIASES[exp.name.stringify] || exp.name.stringify}}
               {% end %}
               {% has_named_args = !exp.named_args.is_a?(Nop) %}

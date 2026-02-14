@@ -1,6 +1,6 @@
 require "../../spec_helper"
 
-module JS::Browser::APISpec
+module JS::Context::APISpec
   class StrictConsoleCode < JS::Code
     def_to_js strict: true do
       console.log("Hello", 7, true, nil)
@@ -25,9 +25,9 @@ module JS::Browser::APISpec
 
   describe "typed console return value" do
     it "returns an Undefined context wrapper exposing to_js_ref" do
-      result = JS::Browser.default_context.console.log("Hello")
+      result = JS::Context.default.console.log("Hello")
 
-      result.should be_a(JS::Browser::Undefined)
+      result.should be_a(JS::Context::Undefined)
       result.to_js_ref.should eq("console.log(\"Hello\")")
     end
   end

@@ -1,8 +1,8 @@
 require "./context_object"
 
 module JS
-  module Browser
-    class Undefined < JS::Browser::ContextObject
+  module Context
+    class Undefined < JS::Context::ContextObject
     end
   end
 end
