@@ -8,7 +8,7 @@ module JS
       def initialize(@to_js_ref : String)
       end
 
-      def append_call(*args : MethodCallArgument) : JS::Browser::MethodCall
+      def _call(*args : MethodCallArgument) : JS::Browser::MethodCall
         JS::Browser::MethodCall.new(
           String.build do |io|
             io << to_js_ref
@@ -19,15 +19,15 @@ module JS
         )
       end
 
-      def _call(*args : MethodCallArgument) : JS::Browser::MethodCall
-        append_call(*args)
+      def _call : JS::Browser::MethodCall
+        JS::Browser::MethodCall.new("#{to_js_ref}()")
       end
 
       def property(name : String) : JS::Browser::MethodCall
         JS::Browser::MethodCall.new("#{to_js_ref}.#{name}")
       end
 
-      def invoke(name : String, *args : MethodCallArgument) : JS::Browser::MethodCall
+      def call(name : String, *args : MethodCallArgument) : JS::Browser::MethodCall
         JS::Browser::MethodCall.new(
           String.build do |io|
             io << to_js_ref
@@ -38,36 +38,6 @@ module JS
             io << ")"
           end
         )
-      end
-
-      # Keep chained Crystal syntax close to JS while producing typed call wrappers.
-      macro method_missing(call)
-        {% if call.name.stringify == "_call" %}
-          JS::Browser::MethodCall.new(
-            String.build do |io|
-              io << @to_js_ref
-              io << "("
-              {% if call.args.empty? %}
-                JS::Browser.serialize_args(io)
-              {% else %}
-                JS::Browser.serialize_args(io, {{call.args.splat}})
-              {% end %}
-              io << ")"
-            end
-          )
-        {% else %}
-        {% if call.block %}
-          {% call.raise "JS::Browser::MethodCall wrappers don't support block arguments." %}
-        {% end %}
-        {% unless call.named_args.is_a?(Nop) %}
-          {% call.raise "JS::Browser::MethodCall wrappers don't support named arguments." %}
-        {% end %}
-        {% if call.args.empty? %}
-          property({{call.name.id.stringify}})
-        {% else %}
-          invoke({{call.name.id.stringify}}, {{call.args.splat}})
-        {% end %}
-        {% end %}
       end
     end
 
@@ -97,7 +67,8 @@ module JS
       io << arg
     end
 
-    private def self.serialize_arg(io : IO, arg : JS::Browser::MethodCall) : Nil
+    # Keep one generic fallback for JS-context wrapper values that expose #to_js_ref.
+    private def self.serialize_arg(io : IO, arg) : Nil
       io << arg.to_js_ref
     end
   end

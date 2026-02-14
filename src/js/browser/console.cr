@@ -22,16 +22,7 @@ module JS
       end
 
       private def build_call(name : String, *args : JS::Browser::MethodCallArgument) : JS::Browser::MethodCall
-        JS::Browser::MethodCall.new(
-          String.build do |io|
-            io << to_js_ref
-            io << "."
-            io << name
-            io << "("
-            JS::Browser.serialize_args(io, *args)
-            io << ")"
-          end
-        )
+        JS::Browser::MethodCall.new(to_js_ref).call(name, *args)
       end
     end
   end

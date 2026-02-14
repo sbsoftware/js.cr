@@ -27,7 +27,7 @@ module JS::Browser::APISpec
     it "builds chained JS references transitively" do
       ref = JS::Browser.default_context.console
         .log("Hello")
-        .next_step("done")
+        .call("next_step", "done")
         ._call
         .to_js_ref
 
