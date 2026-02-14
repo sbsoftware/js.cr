@@ -46,15 +46,6 @@ module JS
 
         {% if exp.receiver %}
           JS::Code._strict_validate_node({{namespace}}, {{exp.receiver}}, {{locals.empty? ? "[] of String".id : locals}})
-          {% if exp.receiver.is_a?(Call) && !exp.receiver.receiver %}
-            {% receiver_name = exp.receiver.name.id.stringify.gsub(/\A"|"\z/, "") %}
-            {% if receiver_name == "console" %}
-              {% console_type = parse_type("JS::Browser::Console").resolve? %}
-              {% if console_type.is_a?(TypeNode) && !console_type.has_method?(exp.name) %}
-                {% exp.raise "Strict mode: `console` has no typed `#{call_name}` method. Supported methods are `log`, `info`, `warn`, and `error`." %}
-              {% end %}
-            {% end %}
-          {% end %}
         {% elsif !STRICT_MODE_HELPER_CALL_NAMES.includes?(call_name) && call_name != "new" && call_name != "_call" && call_name != "[]" && call_name != "[]=" && !OPERATOR_CALL_NAMES.includes?(call_name) %}
           {% namespace_declares_call = false %}
           {% if (namespace_type = parse_type(namespace.stringify).resolve?) && namespace_type.is_a?(TypeNode) && namespace_type.class.has_method?(exp.name) %}

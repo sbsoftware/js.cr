@@ -8,7 +8,7 @@ module JS
       protected def initialize(@to_js_ref : String)
       end
 
-      protected def initialize(preceding_call_chain : String, method_name : String, *args : JS::Browser::CallArgument)
+      def initialize(preceding_call_chain : String, method_name : String, *args : JS::Browser::CallArgument)
         @to_js_ref = JS::Browser.build_call_chain(preceding_call_chain, method_name, *args)
       end
     end
