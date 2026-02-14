@@ -9,6 +9,8 @@ An experimental tool to generate JavaScript code from Crystal code.
   * [Code Snippets](#javascript-code)
     * [`_call`](#_call)
     * [`async` / `await`](#async--await)
+    * [Strict Mode (opt-in)](#strict-mode-opt-in)
+  * [Browser API Wrappers](#browser-api-wrappers)
   * [Functions](#javascript-functions)
   * [Classes](#javascript-classes)
   * [Files](#javascript-files)
@@ -87,6 +89,62 @@ end
 
 puts MyAsyncSnippet.to_js
 ```
+
+#### Strict Mode (opt-in)
+
+You can enable strict mode per generated unit:
+
+- `JS::Code`: `def_to_js strict: true do ... end`
+- `JS::File`: `def_to_js strict: true do ... end`
+- `JS::Module`: `def_to_js strict: true do ... end`
+
+In strict mode:
+
+- Referencing/calling undeclared JS identifiers raises a compile-time error.
+- `_literal_js(...)` is rejected at compile-time.
+
+```crystal
+require "js"
+
+class MyStrictCode < JS::Code
+  def_to_js strict: true do
+    console.log("ready")
+  end
+end
+```
+
+### Browser API Wrappers
+
+In strict mode, method calls without an explicit receiver are resolved against a default browser context object.
+For now, this context exposes `console` with:
+
+- `log`
+- `info`
+- `warn`
+- `error`
+
+Use regular-looking calls (instead of wrapper constants or `_literal_js`):
+
+```crystal
+class MyConsoleCode < JS::Code
+  def_to_js strict: true do
+    console.log("Hello", 7, true)
+  end
+end
+```
+
+#### Adding wrappers iteratively
+
+Use this pattern for additional browser APIs:
+
+1. Add/update `JS::Context::Browser` with the new receiverless entrypoint (like `console`).
+2. Add a wrapper under `src/js/context/<api>.cr` in `JS::Context`.
+3. Inherit browser wrappers from `JS::Context::ContextObject`, which stores the current JS call chain and provides call-chain initialization.
+4. Return a typed browser context object from each wrapper method (for now, `console.log/info/warn/error` return `JS::Context::Undefined`).
+5. Add specs that:
+   - verify JS output from wrapper calls;
+   - verify typed return wrappers and their `to_js_ref` output;
+   - verify strict mode acceptance when wrappers are used.
 
 ### JavaScript Functions
 
