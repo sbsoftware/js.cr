@@ -116,12 +116,15 @@ end
 ### Browser API Wrappers
 
 In strict mode, method calls without an explicit receiver are resolved against a default browser context object.
-For now, this context exposes `console` with:
+This context currently exposes:
 
-- `log`
-- `info`
-- `warn`
-- `error`
+- `console.log`
+- `console.info`
+- `console.warn`
+- `console.error`
+- `window.setTimeout(callback, delay)` returning a typed timer handle
+- `window.clearTimeout(handle)`
+- `navigator.share(text:, title: nil, url: nil)`
 
 Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 
@@ -129,6 +132,9 @@ Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 class MyConsoleCode < JS::Code
   def_to_js strict: true do
     console.log("Hello", 7, true)
+    timer = window.setTimeout("tick", 1000)
+    window.clearTimeout(timer)
+    navigator.share(text: "Done", title: "Status")
   end
 end
 ```
