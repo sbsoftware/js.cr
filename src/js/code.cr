@@ -1,6 +1,7 @@
 module JS
   abstract class Code
-    OPERATOR_CALL_NAMES = %w[+ - * / ** ^ // & | && || > >= < <= == !=]
+    OPERATOR_CALL_NAMES             = %w[+ - * / ** ^ // & | && || > >= < <= == !=]
+    VARIABLE_DECLARATION_CALL_NAMES = %w[let const]
 
     JS_ALIASES = {} of String => String
 
@@ -38,7 +39,7 @@ module JS
         {% var_declaration_exclusions << declared_var %}
       {% end %}
       {% for exp in exps %}
-        {% if exp.is_a?(Call) && !exp.receiver && (exp.name.stringify == "let" || exp.name.stringify == "const") && exp.args.size > 0 %}
+        {% if exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) && exp.args.size > 0 %}
           {% first_arg = exp.args.first %}
           {% if first_arg.is_a?(Assign) && first_arg.target.is_a?(Var) %}
             {% var_declaration_exclusions << first_arg.target.stringify %}
@@ -59,7 +60,7 @@ module JS
       {% end %}
 
       {% for exp in exps %}
-          {% if exp.is_a?(Call) && !exp.receiver && (exp.name.stringify == "let" || exp.name.stringify == "const") %}
+          {% if exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) %}
             {% declaration_kind = exp.name.stringify %}
             {% if exp.args.empty? %}
               {{exp.raise "`#{declaration_kind}` requires a variable name. Use `#{declaration_kind} my_var = value`."}}
