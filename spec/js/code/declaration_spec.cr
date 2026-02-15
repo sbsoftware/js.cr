@@ -31,6 +31,19 @@ module JS::Code::DeclarationSpec
     end
   end
 
+  class NestedCallbackDeclarationCode < JS::Code
+    def_to_js do
+      let count = 0
+      const label = "tick"
+
+      setTimeout do
+        count = count + 1
+        console.log(label)
+        console.log(count)
+      end
+    end
+  end
+
   describe "let / const declarations" do
     it "emits let and const declarations at the declaration site" do
       expected = <<-JS.squish
@@ -81,6 +94,21 @@ module JS::Code::DeclarationSpec
       exit_code.should_not eq(0)
       stderr.should contain("requires an initializer")
       stderr.should contain("const my_var = value")
+    end
+
+    it "keeps let/const bindings available inside nested callback functions" do
+      expected = <<-JS.squish
+      let count = 0;
+      const label = "tick";
+      setTimeout(function() {
+        count = count + 1;
+        console.log(label);
+        console.log(count);
+      });
+      JS
+
+      NestedCallbackDeclarationCode.to_js.should eq(expected)
+      NestedCallbackDeclarationCode.to_js.should_not contain("var count;")
     end
   end
 end
