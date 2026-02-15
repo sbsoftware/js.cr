@@ -40,7 +40,7 @@ module JS
         JS::Code._eval_js_block(
           io,
           {{@type.resolve}},
-          {inline: false, nested_scope: true, strict: false}
+          {inline: false, nested_scope: true, strict: false, declared_vars: [] of String}
         ) {{blk}}
         io << "}"
       end
