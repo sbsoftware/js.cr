@@ -96,6 +96,25 @@ module JS::Code::DeclarationSpec
       stderr.should contain("const my_var = value")
     end
 
+    it "fails at compile-time when using two call arguments" do
+      source = <<-CR
+      require "./src/js"
+
+      class InvalidLetCallStyleCode < JS::Code
+        def_to_js do
+          let(my_var, 1)
+        end
+      end
+
+      puts InvalidLetCallStyleCode.to_js
+      CR
+
+      exit_code, _stdout, stderr = crystal_eval(source)
+      exit_code.should_not eq(0)
+      stderr.should contain("accepts exactly one argument")
+      stderr.should contain("let my_var = value")
+    end
+
     it "keeps let/const bindings available inside nested callback functions" do
       expected = <<-JS.squish
       let count = 0;

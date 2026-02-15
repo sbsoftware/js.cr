@@ -63,12 +63,19 @@ module JS
           {% if exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) %}
             {% declaration_kind = exp.name.stringify %}
             {% if exp.args.empty? %}
-              {{exp.raise "`#{declaration_kind}` requires a variable name. Use `#{declaration_kind} my_var = value`."}}
-            {% elsif exp.args.size > 2 %}
-              {{exp.raise "`#{declaration_kind}` accepts one assignment argument (`#{declaration_kind} my_var = value`) or two positional arguments (`#{declaration_kind}(my_var, value)`)."}}
+              {% if declaration_kind == "let" %}
+                {{exp.raise "`let` requires one argument. Use `let my_var` or `let my_var = value`."}}
+              {% else %}
+                {{exp.raise "`const` requires one argument. Use `const my_var = value`."}}
+              {% end %}
+            {% elsif exp.args.size > 1 %}
+              {% if declaration_kind == "let" %}
+                {{exp.raise "`let` accepts exactly one argument. Use `let my_var` or `let my_var = value`."}}
+              {% else %}
+                {{exp.raise "`const` accepts exactly one argument. Use `const my_var = value`."}}
+              {% end %}
             {% end %}
 
-            {% has_initializer = false %}
             {% declared_name = nil %}
 
             {% if exp.args.first.is_a?(Assign) %}
@@ -76,11 +83,7 @@ module JS
               {% unless assignment.target.is_a?(Var) %}
                 {{assignment.raise "`#{declaration_kind}` declarations require a plain variable name on the left-hand side."}}
               {% end %}
-              {% if exp.args.size == 2 %}
-                {{exp.raise "`#{declaration_kind}` with an assignment argument cannot also include a second value argument."}}
-              {% end %}
               {% declared_name = assignment.target.stringify %}
-              {% has_initializer = true %}
               {{assignment.target}} = nil
               {% scope_declared_vars << assignment.target.stringify %}
               {{io}} << {{declaration_kind}}
@@ -107,14 +110,8 @@ module JS
               {{io}} << " "
               {{io}} << {{declared_name}}
 
-              {% if exp.args.size == 2 %}
-                {% has_initializer = true %}
-                {{io}} << " = "
-                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                  {{exp.args.last}}
-                end
-              {% elsif declaration_kind == "const" %}
-                {{exp.raise "`const` requires an initializer. Use `const my_var = value` or `const(my_var, value)`."}}
+              {% if declaration_kind == "const" %}
+                {{exp.raise "`const` requires an initializer. Use `const my_var = value`."}}
               {% end %}
             {% end %}
 
