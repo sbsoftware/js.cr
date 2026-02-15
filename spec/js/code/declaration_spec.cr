@@ -36,11 +36,11 @@ module JS::Code::DeclarationSpec
       let count = 0
       const label = "tick"
 
-      setTimeout do
+      setTimeout(-> {
         count = count + 1
         console.log(label)
         console.log(count)
-      end
+      }, 1000)
     end
   end
 
@@ -119,11 +119,11 @@ module JS::Code::DeclarationSpec
       expected = <<-JS.squish
       let count = 0;
       const label = "tick";
-      setTimeout(function() {
+      setTimeout(() => {
         count = count + 1;
         console.log(label);
         console.log(count);
-      });
+      }, 1000);
       JS
 
       NestedCallbackDeclarationCode.to_js.should eq(expected)
