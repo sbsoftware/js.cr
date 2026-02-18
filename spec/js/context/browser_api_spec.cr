@@ -85,4 +85,12 @@ module JS::Context::BrowserAPISpec
       result.to_js_ref.should eq("navigator.share({text: \"Done\", title: \"Status\"})")
     end
   end
+
+  describe "call-chain serialization" do
+    it "serializes named tuple args as JS object literals" do
+      share_call = JS::Context.build_call_chain("navigator", "share", {text: "Done", url: "https://example.com"})
+
+      share_call.should eq("navigator.share({text: \"Done\", url: \"https://example.com\"})")
+    end
+  end
 end
