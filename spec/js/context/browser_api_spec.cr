@@ -16,6 +16,15 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictReceiverlessWindowTimersCode < JS::Code
+    def_to_js strict: true do
+      timer = setTimeout(-> {
+        console.log("tick")
+      }, 1000)
+      clearTimeout(timer)
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -27,6 +36,20 @@ module JS::Context::BrowserAPISpec
       JS
 
       StrictWindowTimersCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "strict browser context forwarded window calls" do
+    it "transpiles receiverless timer calls by forwarding through window" do
+      expected = <<-JS.squish
+      var timer;
+      timer = setTimeout(() => {
+        console.log("tick");
+      }, 1000);
+      clearTimeout(timer);
+      JS
+
+      StrictReceiverlessWindowTimersCode.to_js.should eq(expected)
     end
   end
 
@@ -44,10 +67,13 @@ module JS::Context::BrowserAPISpec
     it "returns a timer handle and accepts it in clearTimeout" do
       timer = JS::Context.default.window.setTimeout("tick", 1000)
       clear_result = JS::Context.default.window.clearTimeout(timer)
+      forwarded_timer = JS::Context.default.setTimeout("tick", 1000)
 
       timer.should be_a(JS::Context::TimerHandle)
       timer.to_js_ref.should eq("window.setTimeout(\"tick\", 1000)")
       clear_result.to_js_ref.should eq("window.clearTimeout(window.setTimeout(\"tick\", 1000))")
+      forwarded_timer.should be_a(JS::Context::TimerHandle)
+      forwarded_timer.to_js_ref.should eq("window.setTimeout(\"tick\", 1000)")
     end
   end
 
