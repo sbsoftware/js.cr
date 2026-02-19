@@ -79,16 +79,13 @@ module JS
     end
 
     macro _register_js_fragment(namespace, strict = false, &blk)
-      {% fragment_method = "__js_fragment_line_#{blk.line_number}_col_#{blk.column_number}".id %}
-      def self.{{fragment_method}}(io : IO)
+      @@js_fragments << ->(io : IO) do
         JS::Code._eval_js_block(
           io,
           {{namespace}},
           {inline: false, nested_scope: true, strict: {{strict}}, declared_vars: [] of String}
         ) {{blk}}
       end
-
-      @@js_fragments << ->(io : IO) { {{fragment_method}}(io) }
     end
   end
 end
