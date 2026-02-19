@@ -18,12 +18,7 @@ module JS
       end
 
       macro method_missing(call)
-        {% window_type = parse_type("JS::Context::Window").resolve %}
-        {% if window_type && window_type.is_a?(TypeNode) && window_type.has_method?(call.name) %}
-          window.{{call}}
-        {% else %}
-          {{call.raise "undefined method '#{call.name}' for JS::Context::Browser"}}
-        {% end %}
+        window.{{call}}
       end
     end
 
