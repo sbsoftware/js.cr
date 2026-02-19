@@ -68,7 +68,7 @@ module JS::Code::StrictModeSpec
 
       exit_code, _stdout, stderr = crystal_eval(source)
       exit_code.should_not eq(0)
-      stderr.should contain("undefined method")
+      stderr.should contain("Strict mode forbids `_literal_js(...)`.")
       stderr.should contain("_literal_js")
     end
   end
