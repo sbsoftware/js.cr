@@ -208,7 +208,13 @@ module JS
               end
             {% else %}
               {% if opts[:strict] && !exp.receiver && !JS_ALIASES.has_key?(exp.name.stringify) && !scope_declared_vars.includes?(exp.name.stringify) %}
-                JS::Context.default.{{exp.name}}
+                {% browser_context_type = parse_type("JS::Context::Browser").resolve %}
+                {% browser_has_method = browser_context_type && browser_context_type.is_a?(TypeNode) && browser_context_type.has_method?(exp.name) %}
+                {% window_context_type = parse_type("JS::Context::Window").resolve %}
+                {% window_has_method = window_context_type && window_context_type.is_a?(TypeNode) && window_context_type.has_method?(exp.name) %}
+                {% unless browser_has_method || window_has_method %}
+                  JS::Context.default.{{exp.name}}
+                {% end %}
               {% end %}
               {% emitted_from_strict_context = false %}
               {% if exp.receiver %}
