@@ -118,8 +118,12 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
-          {% elsif exp.is_a?(Call) && exp.name.stringify == "_literal_js" && !opts[:strict] %}
-            {{io}} << {{exp.args.first}}
+          {% elsif exp.is_a?(Call) && exp.name.stringify == "_literal_js" %}
+            {% if opts[:strict] %}
+              {{exp.raise "Strict mode forbids `_literal_js(...)`."}}
+            {% else %}
+              {{io}} << {{exp.args.first}}
+            {% end %}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "to_js_call" %}
             {{io}} << {{exp}}
             {% if !opts[:inline] %}
@@ -207,9 +211,6 @@ module JS
                 {{exp.args.first}}
               end
             {% else %}
-              {% if opts[:strict] && !exp.receiver && !JS_ALIASES.has_key?(exp.name.stringify) && !scope_declared_vars.includes?(exp.name.stringify) %}
-                JS::Context.default.{{exp.name}}
-              {% end %}
               {% emitted_from_strict_context = false %}
               {% if exp.receiver %}
                 # TODO: Replace this whole `if` by a recursive call to this macro?
