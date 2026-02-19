@@ -32,16 +32,8 @@ module JS
     def self.serialize_args(io : IO, *args) : Nil
       args.each_with_index do |arg, index|
         io << ", " unless index.zero?
-        serialize_arg(io, arg)
+        io << arg.to_js_ref
       end
-    end
-
-    private def self.serialize_arg(io : IO, arg : JS::Context::CallArgument) : Nil
-      io << arg.to_js_ref
-    end
-
-    private def self.serialize_arg(io : IO, arg : NamedTuple) : Nil
-      io << arg.to_js_ref
     end
   end
 end
