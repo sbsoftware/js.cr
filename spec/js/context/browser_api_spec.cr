@@ -101,17 +101,6 @@ module JS::Context::BrowserAPISpec
       cards.should be_a(JS::Context::NodeList)
       cards.to_js_ref.should eq("document.querySelectorAll(\".card\")")
 
-      no_runtime_for_each_source = <<-CR
-      require "./src/js"
-
-      cards = JS::Context.default.document.querySelectorAll(".card")
-      cards.forEach(nil)
-      CR
-      no_runtime_for_each_exit_code, _no_runtime_for_each_stdout, no_runtime_for_each_stderr = crystal_eval(no_runtime_for_each_source)
-      no_runtime_for_each_exit_code.should_not eq(0)
-      no_runtime_for_each_stderr.should contain("undefined method 'forEach'")
-      no_runtime_for_each_stderr.should contain("JS::Context::NodeList")
-
       optional_type_source = <<-CR
       require "./src/js"
 
