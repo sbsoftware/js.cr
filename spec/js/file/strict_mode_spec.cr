@@ -2,10 +2,8 @@ require "../../spec_helper"
 
 module JS::File::StrictModeSpec
   class StrictFile < JS::File
-    js_alias "doc", "document"
-
     def_to_js strict: true do
-      doc.body.classList.add("active")
+      document.body.classList.add("active")
     end
   end
 

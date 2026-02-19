@@ -1,4 +1,5 @@
 require "./console"
+require "./document"
 require "./navigator"
 require "./window"
 
@@ -15,6 +16,10 @@ module JS
 
       def navigator : JS::Context::Navigator
         JS::Context::Navigator.new
+      end
+
+      def document : JS::Context::Document
+        JS::Context::Document.new
       end
 
       macro method_missing(call)
