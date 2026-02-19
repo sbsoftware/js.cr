@@ -101,9 +101,21 @@ module JS::Context::BrowserAPISpec
       cards.should be_a(JS::Context::NodeList)
       cards.to_js_ref.should eq("document.querySelectorAll(\".card\")")
 
-      for_each_result = cards.forEach("processCard")
+      callback = JS::Context::Callback.new("processCard")
+      for_each_result = cards.forEach(callback)
       for_each_result.should be_a(JS::Context::Undefined)
-      for_each_result.to_js_ref.should eq("document.querySelectorAll(\".card\").forEach(\"processCard\")")
+      for_each_result.to_js_ref.should eq("document.querySelectorAll(\".card\").forEach(processCard)")
+
+      string_callback_source = <<-CR
+      require "./src/js"
+
+      cards = JS::Context.default.document.querySelectorAll(".card")
+      cards.forEach("processCard")
+      CR
+      string_callback_exit_code, _string_callback_stdout, string_callback_stderr = crystal_eval(string_callback_source)
+      string_callback_exit_code.should_not eq(0)
+      string_callback_stderr.should contain("JS::Context::NodeList#forEach")
+      string_callback_stderr.should contain("JS::Context::Callback")
 
       optional_type_source = <<-CR
       require "./src/js"
