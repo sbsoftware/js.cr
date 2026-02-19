@@ -126,7 +126,7 @@ This context currently exposes:
 - `window.clearTimeout(handle)`
 - `navigator.share(text:, title: nil, url: nil)`
 - `document.querySelector(selector)` returning an optional typed element wrapper
-- `document.querySelectorAll(selector)` returning a typed `NodeList` wrapper with `forEach`
+- `document.querySelectorAll(selector)` returning a typed `NodeList` wrapper (supports `forEach` block emission in the DSL)
 
 Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 
