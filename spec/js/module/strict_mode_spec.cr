@@ -3,10 +3,9 @@ require "../../spec_helper"
 module JS::Module::StrictModeSpec
   class StrictModule < JS::Module
     js_import Controller, from: "/assets/stimulus.js"
-    js_alias "doc", "document"
 
     def_to_js strict: true do
-      title = doc.querySelector("title")
+      title = document.querySelector("title")
       console.log(title)
     end
   end

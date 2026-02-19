@@ -2,10 +2,8 @@ require "../../spec_helper"
 
 module JS::Code::StrictModeSpec
   class StrictCode < JS::Code
-    js_alias "doc", "document"
-
     def_to_js strict: true do
-      doc.querySelector("body")
+      document.querySelector("body")
       console.info("ready")
     end
   end

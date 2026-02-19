@@ -25,6 +25,17 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictDocumentSelectorsCode < JS::Code
+    def_to_js strict: true do
+      title = document.querySelector("title")
+      cards = document.querySelectorAll(".card")
+      cards.forEach do |card|
+        console.log(card)
+      end
+      console.log(title)
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -60,6 +71,23 @@ module JS::Context::BrowserAPISpec
       JS
 
       StrictNavigatorShareCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "strict browser context document selector calls" do
+    it "transpiles selector assignment and NodeList iteration in strict mode" do
+      expected = <<-JS.squish
+      var title;
+      var cards;
+      title = document.querySelector("title");
+      cards = document.querySelectorAll(".card");
+      cards.forEach(function(card) {
+        console.log(card);
+      });
+      console.log(title);
+      JS
+
+      StrictDocumentSelectorsCode.to_js.should eq(expected)
     end
   end
 end

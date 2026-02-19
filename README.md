@@ -125,6 +125,8 @@ This context currently exposes:
 - `window.setTimeout(callback, delay)` returning a typed timer handle
 - `window.clearTimeout(handle)`
 - `navigator.share(text:, title: nil, url: nil)`
+- `document.querySelector(selector)` returning an optional typed element wrapper
+- `document.querySelectorAll(selector)` returning a typed `NodeList` wrapper (supports `forEach` block emission in the DSL)
 
 Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 
@@ -132,6 +134,11 @@ Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 class MyConsoleCode < JS::Code
   def_to_js strict: true do
     console.log("Hello", 7, true)
+    title = document.querySelector("title")
+    cards = document.querySelectorAll(".card")
+    cards.forEach do |card|
+      console.log(card)
+    end
     timer = window.setTimeout("tick", 1000)
     window.clearTimeout(timer)
     navigator.share(text: "Done", title: "Status")
