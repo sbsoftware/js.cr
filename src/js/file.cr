@@ -6,6 +6,27 @@ module JS
   abstract class File
     @@js_classes = [] of JS::Class.class
     @@js_functions = [] of JS::Function.class
+    @@js_fragments = [] of Proc(IO, Nil)
+
+    # Base file emission includes class/function declarations plus all
+    # registered JS fragments in declaration order.
+    def self.to_js(io : IO)
+      @@js_classes.each do |js_class|
+        js_class.to_js(io)
+      end
+      @@js_functions.each do |func|
+        func.to_js(io)
+      end
+      @@js_fragments.each do |fragment|
+        fragment.call(io)
+      end
+    end
+
+    def self.to_js
+      String.build do |str|
+        to_js(str)
+      end
+    end
 
     macro js_alias(new_name, old_name)
       JS::Code.js_alias({{new_name}}, {{old_name}})
@@ -45,25 +66,25 @@ module JS
       end
     end
 
-    macro def_to_js(&blk)
-      def_to_js({{@type}}) {{blk}}
+    macro js_fragment(strict = false, &blk)
+      _register_js_fragment({{@type}}, strict: {{strict}}) {{blk}}
     end
 
-    macro def_to_js(namespace, &blk)
-      def self.to_js(io : IO)
-        @@js_classes.each do |js_class|
-          js_class.to_js(io)
-        end
-        @@js_functions.each do |func|
-          func.to_js(io)
-        end
-        JS::Code._eval_js_block(io, {{namespace}}, {inline: false, nested_scope: true}) {{blk}}
-      end
+    macro def_to_js(strict = false, &blk)
+      _register_js_fragment({{@type}}, strict: {{strict}}) {{blk}}
+    end
 
-      def self.to_js
-        String.build do |str|
-          to_js(str)
-        end
+    macro def_to_js(namespace, strict = false, &blk)
+      _register_js_fragment({{namespace}}, strict: {{strict}}) {{blk}}
+    end
+
+    macro _register_js_fragment(namespace, strict = false, &blk)
+      @@js_fragments << ->(io : IO) do
+        JS::Code._eval_js_block(
+          io,
+          {{namespace}},
+          {inline: false, nested_scope: true, strict: {{strict}}, declared_vars: [] of String}
+        ) {{blk}}
       end
     end
   end
