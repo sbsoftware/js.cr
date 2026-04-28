@@ -1,6 +1,6 @@
 module JS
   abstract class Code
-    OPERATOR_CALL_NAMES             = %w[+ - * / ** ^ // & | && || > >= < <= == !=]
+    OPERATOR_CALL_NAMES             = %w[+ - * / ** ^ // & | && || > >= < <= == != %]
     VARIABLE_DECLARATION_CALL_NAMES = %w[let const]
 
     JS_ALIASES = {} of String => String

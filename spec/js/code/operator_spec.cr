@@ -12,6 +12,7 @@ module JS::Code::OperatorSpec
       z = x / 2
       a = i * j * z + MY_CRYSTAL_VALUE.to_js_ref
       b = MY_CRYSTAL_VALUE.to_js_ref * sizeof(Int32).to_js_ref
+      c = j % 3
 
       if x > 0 && x >= y || x < 0 && x <= y
         console.log("yes")
@@ -31,6 +32,7 @@ module JS::Code::OperatorSpec
       var z;
       var a;
       var b;
+      var c;
 
       i = 10000;
       j = i * 20;
@@ -39,6 +41,7 @@ module JS::Code::OperatorSpec
       z = x / 2;
       a = i * j * z + 4;
       b = 4 * 4;
+      c = j % 3;
       if ((x > 0 && x >= y) || (x < 0 && x <= y)) {
         console.log("yes");
       }
