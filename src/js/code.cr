@@ -1,6 +1,7 @@
 module JS
   abstract class Code
     OPERATOR_CALL_NAMES             = %w[+ - * / ** ^ // & | && || > >= < <= == != %]
+    OPERATOR_PRECEDENCE             = {"||" => 1, "&&" => 2, "|" => 3, "^" => 4, "&" => 5, ">" => 6, ">=" => 6, "<" => 6, "<=" => 6, "==" => 6, "!=" => 6, "+" => 7, "-" => 7, "*" => 8, "/" => 8, "//" => 8, "%" => 8, "**" => 9}
     VARIABLE_DECLARATION_CALL_NAMES = %w[let const]
 
     JS_ALIASES = {} of String => String
@@ -201,15 +202,39 @@ module JS
             {% end %}
           {% elsif exp.is_a?(Call) %}
             {% if exp.receiver && exp.args.size == 1 && OPERATOR_CALL_NAMES.includes?(exp.name.stringify) %}
+              {% current_operator = exp.name.stringify %}
+              {% current_precedence = OPERATOR_PRECEDENCE[current_operator] || 0 %}
+              {% operator_receiver = exp.receiver %}
+              {% receiver_candidate = operator_receiver.is_a?(Expressions) && operator_receiver.expressions.size == 1 ? operator_receiver.expressions.first : operator_receiver %}
+              {% receiver_operator_name = receiver_candidate.is_a?(Call) && receiver_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(receiver_candidate.name.stringify) ? receiver_candidate.name.stringify : nil %}
+              {% receiver_precedence = receiver_operator_name.nil? ? nil : OPERATOR_PRECEDENCE[receiver_operator_name] %}
+              {% receiver_needs_grouping = !receiver_precedence.nil? && receiver_precedence < current_precedence %}
+              {% if receiver_needs_grouping %}
+                {{io}} << "("
+              {% end %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                 {{exp.receiver}}
               end
+              {% if receiver_needs_grouping %}
+                {{io}} << ")"
+              {% end %}
               {{io}} << " "
               {{io}} << {{exp.name.stringify}}
               {{io}} << " "
+              {% operator_arg = exp.args.first %}
+              {% arg_candidate = operator_arg.is_a?(Expressions) && operator_arg.expressions.size == 1 ? operator_arg.expressions.first : operator_arg %}
+              {% arg_operator_name = arg_candidate.is_a?(Call) && arg_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(arg_candidate.name.stringify) ? arg_candidate.name.stringify : nil %}
+              {% arg_precedence = arg_operator_name.nil? ? nil : OPERATOR_PRECEDENCE[arg_operator_name] %}
+              {% arg_needs_grouping = !arg_precedence.nil? && (arg_precedence < current_precedence || arg_precedence == current_precedence) %}
+              {% if arg_needs_grouping %}
+                {{io}} << "("
+              {% end %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                 {{exp.args.first}}
               end
+              {% if arg_needs_grouping %}
+                {{io}} << ")"
+              {% end %}
             {% else %}
               {% emitted_from_strict_context = false %}
               {% if exp.receiver %}
@@ -219,10 +244,24 @@ module JS
                     {{exp.receiver}}
                   end
                 {% elsif exp.receiver.is_a?(Expressions) %}
-                  {% for rec_exp in exp.receiver.expressions %}
+                  # Crystal parses parenthesized receivers like `(a + b)` as
+                  # `Expressions`; preserve grouping when the wrapped expression
+                  # is an infix operator that would otherwise bind incorrectly.
+                  {% receiver_expressions = exp.receiver.expressions %}
+                  {% needs_grouping = receiver_expressions.size == 1 && receiver_expressions.first.is_a?(Call) && receiver_expressions.first.args.size == 1 && OPERATOR_CALL_NAMES.includes?(receiver_expressions.first.name.stringify) %}
+                  {% if needs_grouping %}
+                    {{io}} << "("
+                  {% end %}
+                  {% for rec_exp, index in receiver_expressions %}
                     JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                       {{rec_exp}}
                     end
+                    {% if index < receiver_expressions.size - 1 %}
+                      {{io}} << ", "
+                    {% end %}
+                  {% end %}
+                  {% if needs_grouping %}
+                    {{io}} << ")"
                   {% end %}
                 {% elsif (exp.receiver.is_a?(Path) || exp.receiver.is_a?(TypeNode)) && exp.receiver.resolve? %}
                   {% if exp.receiver.resolve.is_a?(TypeNode) && exp.receiver.resolve.class.has_method?(:to_js_ref) %}

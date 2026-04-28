@@ -56,4 +56,36 @@ module JS::Code::OperatorSpec
       MyCode.to_js.should eq(expected)
     end
   end
+
+  class ChainedOperatorReceiverCode < JS::Code
+    def_to_js do
+      (a + b).toString._call
+    end
+  end
+
+  describe "ChainedOperatorReceiverCode.to_js" do
+    it "preserves parentheses around operator expressions used as call receivers" do
+      ChainedOperatorReceiverCode.to_js.should eq("(a + b).toString();")
+    end
+  end
+
+  class ComplexChainedOperatorReceiverCode < JS::Code
+    def_to_js do
+      ((a + b) * (c - d)).toString._call
+      (left.toString._call + right.trim._call).valueOf._call
+      ((before.normalize._call + after.normalize._call) / total).toFixed(2)
+    end
+  end
+
+  describe "ComplexChainedOperatorReceiverCode.to_js" do
+    it "preserves grouping for nested operator receivers and chained-call operands" do
+      expected = <<-JS.squish
+      ((a + b) * (c - d)).toString();
+      (left.toString() + right.trim()).valueOf();
+      ((before.normalize() + after.normalize()) / total).toFixed(2);
+      JS
+
+      ComplexChainedOperatorReceiverCode.to_js.should eq(expected)
+    end
+  end
 end
