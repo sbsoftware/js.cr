@@ -368,21 +368,43 @@ module JS
               {{io}} << ";"
             {% end %}
           {% elsif exp.is_a?(If) %}
-            {{io}} << "if ("
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-              {{exp.cond}}
-            end
-            {{io}} << ") {"
-            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-              {{exp.then}}
-            end
-            {{io}} << "}"
-            {% if !exp.else.is_a?(Nop) %}
-              {{io}} << " else {"
+            {% if opts[:inline] %}
+              # Crystal conditionals are expressions, so emit JavaScript's
+              # conditional operator when the result is used inline.
+              {{io}} << "("
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                {{exp.cond}}
+              end
+              {{io}} << " ? "
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                {{exp.then}}
+              end
+              {{io}} << " : "
+              {% if exp.else.is_a?(Nop) %}
+                {{io}} << "undefined"
+              {% else %}
+                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                  {{exp.else}}
+                end
+              {% end %}
+              {{io}} << ")"
+            {% else %}
+              {{io}} << "if ("
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                {{exp.cond}}
+              end
+              {{io}} << ") {"
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                {{exp.else}}
+                {{exp.then}}
               end
               {{io}} << "}"
+              {% if !exp.else.is_a?(Nop) %}
+                {{io}} << " else {"
+                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                  {{exp.else}}
+                end
+                {{io}} << "}"
+              {% end %}
             {% end %}
           {% elsif exp.is_a?(Assign) %}
             {{exp.target}} = nil

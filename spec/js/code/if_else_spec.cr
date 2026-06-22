@@ -31,6 +31,21 @@ module JS::Code::IfElseSpec
     end
   end
 
+  class ConditionalExpressionCode < JS::Code
+    def_to_js do
+      index = if event.params.placement == "bottom"
+                1
+              else
+                0
+              end
+      let label = enabled ? "enabled" : "disabled"
+      console.log(ready ? result : fallback)
+      optional = if available
+                   value
+                 end
+    end
+  end
+
   describe "MyCode.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
@@ -66,6 +81,22 @@ module JS::Code::IfElseSpec
       JS
 
       MyCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "ConditionalExpressionCode.to_js" do
+    it "emits JavaScript conditional operators when Crystal conditionals are used as expressions" do
+      expected = <<-JS.squish
+      var index;
+      var optional;
+      index = (event.params.placement == "bottom" ? 1 : 0);
+      let label = (enabled ? "enabled" : "disabled");
+      console.log((ready ? result : fallback));
+      optional = (available ? value : undefined);
+      JS
+
+      ConditionalExpressionCode.to_js.should eq(expected)
+      ConditionalExpressionCode.to_js.should_not contain("= if (")
     end
   end
 end
