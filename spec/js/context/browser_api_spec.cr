@@ -36,6 +36,21 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictEventTargetCode < JS::Code
+    def_to_js strict: true do
+      listener = ->(event) {
+        console.log("event")
+      }
+      event = Event.new("app-ready")
+      button = document.querySelector("button")
+      window.addEventListener("load", listener)
+      document.addEventListener("app-ready", listener, once: true)
+      button.addEventListener("click", listener)
+      document.removeEventListener("app-ready", listener)
+      document.dispatchEvent(event)
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -88,6 +103,39 @@ module JS::Context::BrowserAPISpec
       JS
 
       StrictDocumentSelectorsCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "strict browser context event target calls" do
+    it "transpiles Window, Document, and Element event APIs in strict mode" do
+      expected = <<-JS.squish
+      var listener;
+      var event;
+      var button;
+      listener = (event) => {
+        console.log("event");
+      };
+      event = new Event("app-ready");
+      button = document.querySelector("button");
+      window.addEventListener("load", listener);
+      document.addEventListener("app-ready", listener, {once: true});
+      button.addEventListener("click", listener);
+      document.removeEventListener("app-ready", listener);
+      document.dispatchEvent(event);
+      JS
+
+      StrictEventTargetCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "typed event wrappers" do
+    it "exposes EventTarget calls from browser context wrappers" do
+      listener = JS::Context::Undefined.new("", "handleClick")
+      event = JS::Context::Event.new("click", bubbles: true, cancelable: true)
+
+      JS::Context.default.window.addEventListener("click", listener).to_js_ref.should eq("window.addEventListener(\"click\", handleClick)")
+      JS::Context.default.document.removeEventListener("click", listener, true).to_js_ref.should eq("document.removeEventListener(\"click\", handleClick, true)")
+      JS::Context::Element.new("document", "querySelector", "button").dispatchEvent(event).to_js_ref.should eq("document.querySelector(\"button\").dispatchEvent(new Event(\"click\", {bubbles: true, cancelable: true}))")
     end
   end
 end

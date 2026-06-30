@@ -1,10 +1,11 @@
 require "./context_object"
 require "./element"
+require "./event_target"
 require "./node_list"
 
 module JS
   module Context
-    class Document < JS::Context::ContextObject
+    class Document < JS::Context::EventTarget
       def initialize
         super("document")
       end
