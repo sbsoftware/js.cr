@@ -51,6 +51,26 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictElementDOMCode < JS::Code
+    def_to_js strict: true do
+      container = document.querySelector("#container")
+      item = document.querySelector(".item")
+      container.innerHTML = "<span>Ready</span>"
+      container.textContent = "Ready"
+      console.log(container.innerHTML)
+      console.log(container.textContent)
+      container.classList.add("is-active")
+      container.classList.remove("is-hidden")
+      container.classList.toggle("is-open")
+      container.classList.toggle("is-disabled", false)
+      container.setAttribute("role", "status")
+      console.log(container.getAttribute("role"))
+      container.removeAttribute("hidden")
+      container.appendChild(item)
+      container.removeChild(item)
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -128,6 +148,32 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  describe "strict browser context element DOM calls" do
+    it "transpiles Element DOM manipulation APIs in strict mode" do
+      expected = <<-JS.squish
+      var container;
+      var item;
+      container = document.querySelector("#container");
+      item = document.querySelector(".item");
+      container.innerHTML = "<span>Ready</span>";
+      container.textContent = "Ready";
+      console.log(container.innerHTML);
+      console.log(container.textContent);
+      container.classList.add("is-active");
+      container.classList.remove("is-hidden");
+      container.classList.toggle("is-open");
+      container.classList.toggle("is-disabled", false);
+      container.setAttribute("role", "status");
+      console.log(container.getAttribute("role"));
+      container.removeAttribute("hidden");
+      container.appendChild(item);
+      container.removeChild(item);
+      JS
+
+      StrictElementDOMCode.to_js.should eq(expected)
+    end
+  end
+
   describe "typed event wrappers" do
     it "exposes EventTarget calls from browser context wrappers" do
       listener = JS::Context::Undefined.new("", "handleClick")
@@ -136,6 +182,25 @@ module JS::Context::BrowserAPISpec
       JS::Context.default.window.addEventListener("click", listener).to_js_ref.should eq("window.addEventListener(\"click\", handleClick)")
       JS::Context.default.document.removeEventListener("click", listener, true).to_js_ref.should eq("document.removeEventListener(\"click\", handleClick, true)")
       JS::Context::Element.new("document", "querySelector", "button").dispatchEvent(event).to_js_ref.should eq("document.querySelector(\"button\").dispatchEvent(new Event(\"click\", {bubbles: true, cancelable: true}))")
+    end
+  end
+
+  describe "typed element DOM wrappers" do
+    it "exposes Element DOM manipulation calls" do
+      element = JS::Context::Element.new("document", "querySelector", "#container")
+      child = JS::Context::Element.new("document", "querySelector", ".item")
+
+      element.innerHTML.to_js_ref.should eq("document.querySelector(\"#container\").innerHTML")
+      element.textContent.to_js_ref.should eq("document.querySelector(\"#container\").textContent")
+      element.classList.add("is-active").to_js_ref.should eq("document.querySelector(\"#container\").classList.add(\"is-active\")")
+      element.classList.remove("is-hidden").to_js_ref.should eq("document.querySelector(\"#container\").classList.remove(\"is-hidden\")")
+      element.classList.toggle("is-open").to_js_ref.should eq("document.querySelector(\"#container\").classList.toggle(\"is-open\")")
+      element.classList.toggle("is-disabled", false).to_js_ref.should eq("document.querySelector(\"#container\").classList.toggle(\"is-disabled\", false)")
+      element.setAttribute("role", "status").to_js_ref.should eq("document.querySelector(\"#container\").setAttribute(\"role\", \"status\")")
+      element.getAttribute("role").to_js_ref.should eq("document.querySelector(\"#container\").getAttribute(\"role\")")
+      element.removeAttribute("hidden").to_js_ref.should eq("document.querySelector(\"#container\").removeAttribute(\"hidden\")")
+      element.appendChild(child).to_js_ref.should eq("document.querySelector(\"#container\").appendChild(document.querySelector(\".item\"))")
+      element.removeChild(child).to_js_ref.should eq("document.querySelector(\"#container\").removeChild(document.querySelector(\".item\"))")
     end
   end
 end
