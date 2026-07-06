@@ -1,4 +1,5 @@
 require "./context_object"
+require "./event_target"
 require "./timer_handle"
 require "./undefined"
 
@@ -7,7 +8,7 @@ module JS
     alias TimerDelay = Int::Primitive | Float32 | Float64
     alias TimerCallback = String | JS::Context::ContextObject
 
-    class Window < JS::Context::ContextObject
+    class Window < JS::Context::EventTarget
       def initialize
         super("window")
       end
