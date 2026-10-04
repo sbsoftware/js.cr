@@ -9,6 +9,7 @@ An experimental tool to generate JavaScript code from Crystal code.
   * [Code Snippets](#javascript-code)
     * [`_call`](#_call)
     * [`async` / `await`](#async--await)
+    * [Array and Argument Spread](#array-and-argument-spread)
     * [Strict Mode (opt-in)](#strict-mode-opt-in)
   * [Browser API Wrappers](#browser-api-wrappers)
   * [Functions](#javascript-functions)
@@ -89,6 +90,18 @@ end
 
 puts MyAsyncSnippet.to_js
 ```
+
+#### Array and Argument Spread
+
+Crystal splats in array literals, ordinary call arguments, and constructor arguments map to JavaScript spread expressions:
+
+```crystal
+all_pages = [space_url, *word_urls]       # => [space_url, ...word_urls]
+callback.call(first, *remaining)          # => callback.call(first, ...remaining)
+widget = Widget.new(first, *remaining)    # => new Widget(first, ...remaining)
+```
+
+This mapping is limited to arrays and argument lists. Double splats and object spread are not supported.
 
 #### Strict Mode (opt-in)
 
