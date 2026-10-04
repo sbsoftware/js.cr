@@ -29,6 +29,8 @@ Please note that this is still very experimental and probably lacks essential fe
 
 Also, I skipped any whitespacing for now as I wanted to have my proof of concept as fast as possible. Not sure if I will ever deem it necessary to add it. The specs are still quite readable because I include whitespace in the examples and only remove it before comparing to the results.
 
+> **Breaking change in v1.9.0:** Crystal's `==` and `!=` now generate JavaScript's strict `===` and `!==` operators. Loose equality is no longer emitted by default. If existing generated code relies on JavaScript type coercion, migrate that comparison to explicit JavaScript via `_literal_js` (outside strict mode), or normalize the operand types before comparing them.
+
 ## Examples
 
 ### JavaScript Code
@@ -46,6 +48,22 @@ end
 
 puts MyCode.to_js
 ```
+
+Crystal equality operators map to JavaScript strict equality:
+
+```crystal
+class EqualityCode < JS::Code
+  def_to_js do
+    matches = input == expected
+    changed = previous != current
+  end
+end
+
+# => matches = input === expected;
+# => changed = previous !== current;
+```
+
+This matches Crystal's lack of implicit type coercion. Be aware that JavaScript's strict equality compares objects and arrays by reference, while Crystal containers commonly implement value equality.
 
 #### `_call`
 

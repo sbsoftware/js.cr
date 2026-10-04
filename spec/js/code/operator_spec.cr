@@ -45,7 +45,7 @@ module JS::Code::OperatorSpec
       if ((x > 0 && x >= y) || (x < 0 && x <= y)) {
         console.log("yes");
       }
-      if (a == b) {
+      if (a === b) {
         z = z + 1;
       }
       if (x >= j) {
@@ -54,6 +54,40 @@ module JS::Code::OperatorSpec
       JS
 
       MyCode.to_js.should eq(expected)
+    end
+  end
+
+  class EqualityCode < JS::Code
+    def_to_js do
+      equal = left == right
+      different = left != right
+
+      if active && left == right || fallback != disabled
+        return left != right
+      end
+
+      grouped = (left || right) == expected
+      nested = left == (right && expected)
+    end
+  end
+
+  describe "EqualityCode.to_js" do
+    it "emits strict equality in every expression position without changing precedence" do
+      expected = <<-JS.squish
+      var equal;
+      var different;
+      var grouped;
+      var nested;
+      equal = left === right;
+      different = left !== right;
+      if ((active && (left === right)) || (fallback !== disabled)) {
+        return left !== right;
+      }
+      grouped = (left || right) === expected;
+      nested = left === (right && expected);
+      JS
+
+      EqualityCode.to_js.should eq(expected)
     end
   end
 
