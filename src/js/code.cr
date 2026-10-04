@@ -53,10 +53,34 @@ module JS
       {% end %}
 
       {% if opts[:nested_scope] %}
-        {% for var in exps.select { |e| e.is_a?(Assign) }.map { |a| a.target.stringify }.uniq.reject { |name| var_declaration_exclusions.includes?(name) } %}
-          {{io}} << "var "
-          {{io}} << {{var}}
-          {{io}} << ";"
+        {% implicitly_declared_vars = [] of String %}
+        {% for declared_var in var_declaration_exclusions %}
+          {% implicitly_declared_vars << declared_var %}
+        {% end %}
+        {% for assignment in exps.select { |e| e.is_a?(Assign) } %}
+          {% name = assignment.target.stringify %}
+          {% unless implicitly_declared_vars.includes?(name) %}
+            {{io}} << "var "
+            {{io}} << {{name}}
+            {{io}} << ";"
+            {% implicitly_declared_vars << name %}
+          {% end %}
+        {% end %}
+        {% for assignment in exps.select { |e| e.is_a?(MultiAssign) } %}
+          {% for target in assignment.targets %}
+            {% unless target.is_a?(Var) %}
+              {{target.raise "Multi-assignment only supports plain local-variable targets; property, index, and nested destructuring targets are not supported."}}
+            {% end %}
+          {% end %}
+          {% names = assignment.targets.map(&.stringify).uniq.reject { |name| implicitly_declared_vars.includes?(name) } %}
+          {% unless names.empty? %}
+            {{io}} << "var "
+            {{io}} << {{names.join(", ")}}
+            {{io}} << ";"
+            {% for name in names %}
+              {% implicitly_declared_vars << name %}
+            {% end %}
+          {% end %}
         {% end %}
       {% end %}
 
@@ -405,6 +429,22 @@ module JS
                 end
                 {{io}} << "}"
               {% end %}
+            {% end %}
+          {% elsif exp.is_a?(MultiAssign) %}
+            {% for target in exp.targets %}
+              {% unless target.is_a?(Var) %}
+                {{target.raise "Multi-assignment only supports plain local-variable targets; property, index, and nested destructuring targets are not supported."}}
+              {% end %}
+              {{target}} = nil
+            {% end %}
+            {{io}} << "["
+            {{io}} << {{exp.targets.map(&.stringify).join(", ")}}
+            {{io}} << "] = "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.values.first}}
+            end
+            {% if !opts[:inline] %}
+              {{io}} << ";"
             {% end %}
           {% elsif exp.is_a?(Assign) %}
             {{exp.target}} = nil
