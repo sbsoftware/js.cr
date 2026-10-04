@@ -47,6 +47,22 @@ end
 puts MyCode.to_js
 ```
 
+Crystal's `nil?` predicate checks both nullish JavaScript values. It emits explicit strict comparisons to `null` and `undefined`, including for typed calls represented by `JS::Context::Undefined`:
+
+```crystal
+class NilCheckCode < JS::Code
+  def_to_js do
+    if response.nil?
+      console.log("No response")
+    end
+  end
+end
+
+# => if (response === null || response === undefined) { ... }
+```
+
+This keeps nullish checks consistent with the strict `===` / `!==` output used for Crystal's `==` / `!=`; generated code does not rely on JavaScript's loose `value == null` idiom.
+
 #### `_call`
 
 In Crystal, there are no object properties but just method calls. Without any type information about the JS code you are calling, `js.cr` cannot know whether you want to reference a property or call a function without any arguments on an object.
