@@ -90,6 +90,24 @@ end
 puts MyAsyncSnippet.to_js
 ```
 
+#### Exception handling
+
+Crystal exception syntax emits JavaScript `try`, `catch`, `finally`, and `throw` statements inside generated blocks:
+
+```crystal
+begin
+  manifest = await(response.json._call)
+rescue error
+  manifest = nil
+ensure
+  cleanup._call
+end
+
+raise Error.new("Unable to cache page")
+```
+
+Exception handling currently supports at most one untyped `rescue variable` clause and an optional `ensure` block. Typed rescues, multiple rescue clauses, `else`, and bare `raise` are rejected at compile time.
+
 #### Strict Mode (opt-in)
 
 You can enable strict mode per generated unit:
