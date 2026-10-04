@@ -142,6 +142,19 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
+          {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "raise" %}
+            {% if exp.args.empty? %}
+              {{exp.raise "JavaScript `throw` requires an expression; bare re-raise is not supported."}}
+            {% elsif exp.args.size > 1 %}
+              {{exp.raise "JavaScript `throw` accepts exactly one expression."}}
+            {% end %}
+            {{io}} << "throw "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.args.first}}
+            end
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
           {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "async" && exp.block %}
             {{io}} << "async function("
             {{io}} << {{exp.block.args.splat.stringify}}
@@ -405,6 +418,48 @@ module JS
                 end
                 {{io}} << "}"
               {% end %}
+            {% end %}
+          {% elsif exp.is_a?(ExceptionHandler) %}
+            # JavaScript has one untyped catch clause, so reject Crystal-only
+            # exception features before they can produce misleading output.
+            {% if !exp.else.is_a?(Nop) %}
+              {{exp.else.raise "JavaScript exception handling does not support `else`; use the `begin`, `rescue`, or `ensure` blocks instead."}}
+            {% elsif exp.rescues.size > 1 %}
+              {{exp.raise "JavaScript exception handling supports at most one `rescue` clause."}}
+            {% elsif exp.rescues.size == 1 && exp.rescues.first.name.nil? %}
+              {{exp.rescues.first.raise "JavaScript exception handling requires an untyped rescue variable, for example `rescue error`."}}
+            {% elsif exp.rescues.size == 1 && !exp.rescues.first.types.is_a?(NilLiteral) %}
+              {{exp.rescues.first.raise "JavaScript exception handling does not support typed rescues; use an untyped rescue variable, for example `rescue error`."}}
+            {% elsif exp.rescues.empty? && exp.ensure.is_a?(Nop) %}
+              {{exp.raise "JavaScript exception handling requires a `rescue` or `ensure` block."}}
+            {% end %}
+
+            {{io}} << "try {"
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: true, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.body}}
+            end
+            {{io}} << "}"
+            {% if exp.rescues.size == 1 %}
+              {% rescue_clause = exp.rescues.first %}
+              {% rescue_declared_vars = [] of String %}
+              {% for declared_var in scope_declared_vars %}
+                {% rescue_declared_vars << declared_var %}
+              {% end %}
+              {% rescue_declared_vars << rescue_clause.name.stringify %}
+              {{io}} << " catch ("
+              {{io}} << {{rescue_clause.name.stringify}}
+              {{io}} << ") {"
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: true, strict: {{opts[:strict]}}, declared_vars: {{rescue_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                {{rescue_clause.body}}
+              end
+              {{io}} << "}"
+            {% end %}
+            {% if !exp.ensure.is_a?(Nop) %}
+              {{io}} << " finally {"
+              JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: true, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                {{exp.ensure}}
+              end
+              {{io}} << "}"
             {% end %}
           {% elsif exp.is_a?(Assign) %}
             {{exp.target}} = nil
