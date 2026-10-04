@@ -200,13 +200,57 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
+          {% elsif exp.is_a?(IsA) && exp.arg.stringify == "::Nil" %}
+            # JavaScript has two nullish values, so Crystal's `nil?` must test
+            # both explicitly without falling back to loose equality.
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.receiver}}
+            end
+            {{io}} << " === null || "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.receiver}}
+            end
+            {{io}} << " === undefined"
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
+          {% elsif (exp.is_a?(And) || exp.is_a?(Or)) && exp.stringify.includes?(".nil?") %}
+            # Emit boolean operands recursively because stringifying these AST
+            # nodes would leave nested `nil?` predicates untranslated.
+            {{io}} << "("
+            {% if exp.left.is_a?(IsA) && exp.left.arg.stringify == "::Nil" %}
+              {{io}} << "("
+            {% end %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.left}}
+            end
+            {% if exp.left.is_a?(IsA) && exp.left.arg.stringify == "::Nil" %}
+              {{io}} << ")"
+            {% end %}
+            {{io}} << {{exp.is_a?(And) ? " && " : " || "}}
+            {% if exp.right.is_a?(IsA) && exp.right.arg.stringify == "::Nil" %}
+              {{io}} << "("
+            {% end %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.right}}
+            end
+            {% if exp.right.is_a?(IsA) && exp.right.arg.stringify == "::Nil" %}
+              {{io}} << ")"
+            {% end %}
+            {{io}} << ")"
+          {% elsif exp.is_a?(Not) && exp.stringify.includes?(".nil?") %}
+            {{io}} << "!("
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.exp}}
+            end
+            {{io}} << ")"
           {% elsif exp.is_a?(Call) %}
             {% if exp.receiver && exp.args.size == 1 && OPERATOR_CALL_NAMES.includes?(exp.name.stringify) %}
               {% current_operator = exp.name.stringify %}
               {% current_precedence = OPERATOR_PRECEDENCE[current_operator] || 0 %}
               {% operator_receiver = exp.receiver %}
               {% receiver_candidate = operator_receiver.is_a?(Expressions) && operator_receiver.expressions.size == 1 ? operator_receiver.expressions.first : operator_receiver %}
-              {% receiver_operator_name = receiver_candidate.is_a?(Call) && receiver_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(receiver_candidate.name.stringify) ? receiver_candidate.name.stringify : nil %}
+              {% receiver_operator_name = receiver_candidate.is_a?(IsA) && receiver_candidate.arg.stringify == "::Nil" ? "||" : receiver_candidate.is_a?(Call) && receiver_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(receiver_candidate.name.stringify) ? receiver_candidate.name.stringify : nil %}
               {% receiver_precedence = receiver_operator_name.nil? ? nil : OPERATOR_PRECEDENCE[receiver_operator_name] %}
               {% receiver_needs_grouping = !receiver_precedence.nil? && receiver_precedence < current_precedence %}
               {% if receiver_needs_grouping %}
@@ -223,7 +267,7 @@ module JS
               {{io}} << " "
               {% operator_arg = exp.args.first %}
               {% arg_candidate = operator_arg.is_a?(Expressions) && operator_arg.expressions.size == 1 ? operator_arg.expressions.first : operator_arg %}
-              {% arg_operator_name = arg_candidate.is_a?(Call) && arg_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(arg_candidate.name.stringify) ? arg_candidate.name.stringify : nil %}
+              {% arg_operator_name = arg_candidate.is_a?(IsA) && arg_candidate.arg.stringify == "::Nil" ? "||" : arg_candidate.is_a?(Call) && arg_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(arg_candidate.name.stringify) ? arg_candidate.name.stringify : nil %}
               {% arg_precedence = arg_operator_name.nil? ? nil : OPERATOR_PRECEDENCE[arg_operator_name] %}
               {% arg_needs_grouping = !arg_precedence.nil? && (arg_precedence < current_precedence || arg_precedence == current_precedence) %}
               {% if arg_needs_grouping %}
@@ -239,7 +283,13 @@ module JS
               {% emitted_from_strict_context = false %}
               {% if exp.receiver %}
                 # TODO: Replace this whole `if` by a recursive call to this macro?
-                {% if exp.receiver.is_a?(Call) %}
+                {% if exp.receiver.is_a?(IsA) && exp.receiver.arg.stringify == "::Nil" %}
+                  {{io}} << "("
+                  JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                    {{exp.receiver}}
+                  end
+                  {{io}} << ")"
+                {% elsif exp.receiver.is_a?(Call) %}
                   JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                     {{exp.receiver}}
                   end
