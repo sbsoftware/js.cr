@@ -158,8 +158,13 @@ module JS
             end
             {{io}} << "("
             {% for arg, index in exp.args %}
+              {% if arg.is_a?(DoubleSplat) %}
+                {{arg.raise "Double splats are not supported in JavaScript constructor arguments; only array and argument spread are supported."}}
+              {% elsif arg.is_a?(Splat) %}
+                {{io}} << "..."
+              {% end %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                {{arg}}
+                {{arg.is_a?(Splat) ? arg.exp : arg}}
               end
               {% if index < exp.args.size - 1 %}
                 {{io}} << ", "
@@ -287,8 +292,13 @@ module JS
                 {{io}} << "("
               {% end %}
               {% for arg, index in exp.args %}
+                {% if arg.is_a?(DoubleSplat) %}
+                  {{arg.raise "Double splats are not supported in JavaScript call arguments; only array and argument spread are supported."}}
+                {% elsif arg.is_a?(Splat) %}
+                  {{io}} << "..."
+                {% end %}
                 JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                  {{arg}}
+                  {{arg.is_a?(Splat) ? arg.exp : arg}}
                 end
                 {% if index < exp.args.size - 1 || exp.block || has_named_args %}
                   {{io}} << ", "
@@ -340,8 +350,11 @@ module JS
           {% elsif exp.is_a?(ArrayLiteral) %}
             {{io}} << "["
             {% for element, index in exp %}
+              {% if element.is_a?(Splat) %}
+                {{io}} << "..."
+              {% end %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                {{element}}
+                {{element.is_a?(Splat) ? element.exp : element}}
               end
               {% if index < exp.size - 1 %}
                 {{io}} << ", "
