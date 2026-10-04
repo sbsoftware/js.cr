@@ -49,7 +49,7 @@ module JS::Code::IfElseSpec
   describe "MyCode.to_js" do
     it "should return the correct JS code" do
       expected = <<-JS.squish
-      if (a == 2) {
+      if (a === 2) {
         console.log(a);
       }
 
@@ -61,18 +61,18 @@ module JS::Code::IfElseSpec
         console.log("else");
       }
 
-      if (something == "test") {
+      if (something === "test") {
         console.log("Yeah!");
       } else {
-        if (b == 1) {
+        if (b === 1) {
           console.log("Booo!");
         }
       }
 
-      if (a == 7) {
+      if (a === 7) {
         console.log("7");
       } else {
-        if (a == 5) {
+        if (a === 5) {
           console.log("5");
         } else {
           console.log("else");
@@ -89,7 +89,7 @@ module JS::Code::IfElseSpec
       expected = <<-JS.squish
       var index;
       var optional;
-      index = (event.params.placement == "bottom" ? 1 : 0);
+      index = (event.params.placement === "bottom" ? 1 : 0);
       let label = (enabled ? "enabled" : "disabled");
       console.log((ready ? result : fallback));
       optional = (available ? value : undefined);

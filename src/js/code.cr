@@ -2,6 +2,7 @@ module JS
   abstract class Code
     OPERATOR_CALL_NAMES             = %w[+ - * / ** ^ // & | && || > >= < <= == != %]
     OPERATOR_PRECEDENCE             = {"||" => 1, "&&" => 2, "|" => 3, "^" => 4, "&" => 5, ">" => 6, ">=" => 6, "<" => 6, "<=" => 6, "==" => 6, "!=" => 6, "+" => 7, "-" => 7, "*" => 8, "/" => 8, "//" => 8, "%" => 8, "**" => 9}
+    OPERATOR_OUTPUT                 = {"==" => "===", "!=" => "!=="}
     VARIABLE_DECLARATION_CALL_NAMES = %w[let const]
 
     JS_ALIASES = {} of String => String
@@ -200,37 +201,44 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
+          {% elsif exp.is_a?(And) || exp.is_a?(Or) %}
+            # Crystal represents boolean conjunctions separately from operator
+            # calls. Preserve its established grouping while translating any
+            # equality operators nested inside the expression.
+            {{io}} << {{exp.stringify.gsub(/ != /, " !== ").gsub(/ == /, " === ")}}
           {% elsif exp.is_a?(Call) %}
             {% if exp.receiver && exp.args.size == 1 && OPERATOR_CALL_NAMES.includes?(exp.name.stringify) %}
               {% current_operator = exp.name.stringify %}
               {% current_precedence = OPERATOR_PRECEDENCE[current_operator] || 0 %}
               {% operator_receiver = exp.receiver %}
               {% receiver_candidate = operator_receiver.is_a?(Expressions) && operator_receiver.expressions.size == 1 ? operator_receiver.expressions.first : operator_receiver %}
-              {% receiver_operator_name = receiver_candidate.is_a?(Call) && receiver_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(receiver_candidate.name.stringify) ? receiver_candidate.name.stringify : nil %}
+              {% receiver_operator_name = receiver_candidate.is_a?(And) ? "&&" : receiver_candidate.is_a?(Or) ? "||" : receiver_candidate.is_a?(Call) && receiver_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(receiver_candidate.name.stringify) ? receiver_candidate.name.stringify : nil %}
               {% receiver_precedence = receiver_operator_name.nil? ? nil : OPERATOR_PRECEDENCE[receiver_operator_name] %}
               {% receiver_needs_grouping = !receiver_precedence.nil? && receiver_precedence < current_precedence %}
               {% if receiver_needs_grouping %}
                 {{io}} << "("
               {% end %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                {{exp.receiver}}
+                {{receiver_candidate}}
               end
               {% if receiver_needs_grouping %}
                 {{io}} << ")"
               {% end %}
               {{io}} << " "
-              {{io}} << {{exp.name.stringify}}
+              # Crystal equality never coerces operands, so use JavaScript's
+              # strict operators while retaining Crystal names for precedence.
+              {{io}} << {{OPERATOR_OUTPUT[current_operator] || current_operator}}
               {{io}} << " "
               {% operator_arg = exp.args.first %}
               {% arg_candidate = operator_arg.is_a?(Expressions) && operator_arg.expressions.size == 1 ? operator_arg.expressions.first : operator_arg %}
-              {% arg_operator_name = arg_candidate.is_a?(Call) && arg_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(arg_candidate.name.stringify) ? arg_candidate.name.stringify : nil %}
+              {% arg_operator_name = arg_candidate.is_a?(And) ? "&&" : arg_candidate.is_a?(Or) ? "||" : arg_candidate.is_a?(Call) && arg_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(arg_candidate.name.stringify) ? arg_candidate.name.stringify : nil %}
               {% arg_precedence = arg_operator_name.nil? ? nil : OPERATOR_PRECEDENCE[arg_operator_name] %}
               {% arg_needs_grouping = !arg_precedence.nil? && (arg_precedence < current_precedence || arg_precedence == current_precedence) %}
               {% if arg_needs_grouping %}
                 {{io}} << "("
               {% end %}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
-                {{exp.args.first}}
+                {{arg_candidate}}
               end
               {% if arg_needs_grouping %}
                 {{io}} << ")"
