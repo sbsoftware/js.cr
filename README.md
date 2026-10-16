@@ -73,17 +73,23 @@ puts MyCallCode.to_js
 #### `async` / `await`
 
 You can build anonymous async functions with `async do ... end`, and `await(...)` prefixes the awaited expression in the JS output.
+The same `async do` expression can be passed directly to collection methods such as `map`; no separate async collection API is needed.
 
 ```crystal
 require "js"
 
 class MyAsyncSnippet < JS::Code
   def_to_js do
+    urls = ["/first", "/second"]
     handler = async do |event|
       console.log(event)
     end
 
     response = await(fetch("/data"))
+
+    responses = await(Promise.all(urls.map(async do |url|
+      return await(fetch(url))
+    end)))
   end
 end
 
