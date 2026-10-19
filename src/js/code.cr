@@ -132,6 +132,25 @@ module JS
             {% end %}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "to_js_ref" %}
             {{io}} << {{exp}}
+          {% elsif exp.is_a?(Call) && exp.name.stringify == "in?" %}
+            {% unless exp.receiver %}
+              {{exp.raise "JavaScript property-existence checks require a receiver. Use `property.in?(object)`."}}
+            {% end %}
+            {% unless exp.args.size == 1 && exp.named_args.is_a?(Nop) && !exp.block %}
+              {{exp.raise "JavaScript property-existence checks accept exactly one argument. Use `property.in?(object)`."}}
+            {% end %}
+            {{io}} << "("
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.receiver}}
+            end
+            {{io}} << " in "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.args.first}}
+            end
+            {{io}} << ")"
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
           {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "await" %}
             {{io}} << "await "
             {% if exp.args.size > 0 %}
@@ -325,6 +344,30 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
+          {% elsif exp.is_a?(Or) %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.left}}
+            end
+            {{io}} << " || "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.right}}
+            end
+          {% elsif exp.is_a?(And) %}
+            {{io}} << "("
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.left}}
+            end
+            {{io}} << " && "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.right}}
+            end
+            {{io}} << ")"
+          {% elsif exp.is_a?(Not) %}
+            {% not_operand = exp.exp.is_a?(Expressions) && exp.exp.expressions.size == 1 ? exp.exp.expressions.first : exp.exp %}
+            {{io}} << "!"
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{not_operand}}
+            end
           {% elsif exp.is_a?(Path) %}
             {% parent_namespace = namespace.stringify.split("::")[0..-2].join("::").id %}
             {% relative_path = exp.global? ? exp.stringify.gsub(/\A::/, "") : exp %}
