@@ -128,6 +128,16 @@ This context currently exposes:
 - `document.querySelector(selector)` returning an optional typed element wrapper
 - `document.querySelectorAll(selector)` returning a typed `NodeList` wrapper (supports `forEach` block emission in the DSL)
 
+JavaScript property existence can be expressed with receiver-based `in?` syntax:
+
+```crystal
+if "serviceWorker".in?(navigator)
+  console.log("supported")
+end
+```
+
+This emits `"serviceWorker" in navigator`. Unlike Crystal's `in?`, which checks value membership through `includes?`, JavaScript's `in` checks for a property on an object or anywhere along its prototype chain.
+
 Use regular-looking calls (instead of wrapper constants or `_literal_js`):
 
 ```crystal
