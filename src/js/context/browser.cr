@@ -1,5 +1,6 @@
 require "./console"
 require "./document"
+require "./http"
 require "./navigator"
 require "./window"
 
@@ -20,6 +21,10 @@ module JS
 
       def document : JS::Context::Document
         JS::Context::Document.new
+      end
+
+      def fetch(input : JS::Context::RequestInput) : JS::Context::Promise(JS::Context::Response)
+        JS::Context::Promise(JS::Context::Response).new("", "fetch", input)
       end
 
       macro method_missing(call)
