@@ -142,6 +142,17 @@ module JS
             {% if !opts[:inline] %}
               {{io}} << ";"
             {% end %}
+          {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "js_strict_equal" %}
+            {% if exp.args.size != 2 %}
+              {{exp.raise "`js_strict_equal` requires exactly two arguments."}}
+            {% end %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.args.first}}
+            end
+            {{io}} << " === "
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.args.last}}
+            end
           {% elsif exp.is_a?(Call) && !exp.receiver && exp.name.stringify == "async" && exp.block %}
             {{io}} << "async function("
             {{io}} << {{exp.block.args.splat.stringify}}
@@ -152,6 +163,16 @@ module JS
               {{io}} << ";"
             {% end %}
           {% elsif exp.is_a?(Call) && exp.name.stringify == "new" %}
+            {% if exp.receiver.stringify == "URL" || exp.receiver.stringify == "JS::Context::URL" || exp.receiver.stringify == "::JS::Context::URL" %}
+              {% if exp.args.size < 1 || exp.args.size > 2 %}
+                {{exp.raise "URL.new accepts one or two arguments."}}
+              {% end %}
+              {% for arg in exp.args %}
+                {% unless arg.is_a?(StringLiteral) || arg.is_a?(StringInterpolation) || arg.is_a?(Call) || arg.is_a?(Var) %}
+                  {{arg.raise "URL.new arguments must be strings or typed browser string values."}}
+                {% end %}
+              {% end %}
+            {% end %}
             {{io}} << "new "
             JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
               {{exp.receiver}}
