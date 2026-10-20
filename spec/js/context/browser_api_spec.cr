@@ -71,6 +71,17 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictURLCode < JS::Code
+    def_to_js strict: true do
+      absolute = URL.new("https://example.com/path")
+      url = URL.new("/play", window.location.href)
+      if js_strict_equal(url.origin, window.location.origin)
+        normalized = url.href
+      end
+      console.log(absolute.pathname)
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -201,6 +212,55 @@ module JS::Context::BrowserAPISpec
       element.removeAttribute("hidden").to_js_ref.should eq("document.querySelector(\"#container\").removeAttribute(\"hidden\")")
       element.appendChild(child).to_js_ref.should eq("document.querySelector(\"#container\").appendChild(document.querySelector(\".item\"))")
       element.removeChild(child).to_js_ref.should eq("document.querySelector(\"#container\").removeChild(document.querySelector(\".item\"))")
+    end
+  end
+
+  describe "strict browser URL context" do
+    it "transpiles URL construction, location properties, and origin comparison" do
+      expected = <<-JS.squish
+      var absolute;
+      var url;
+      absolute = new URL("https://example.com/path");
+      url = new URL("/play", window.location.href);
+      if (url.origin === window.location.origin) {
+        normalized = url.href;
+      }
+      console.log(absolute.pathname);
+      JS
+
+      StrictURLCode.to_js.should eq(expected)
+    end
+
+    it "serializes typed wrappers as native browser references" do
+      location = JS::Context.default.window.location
+      url = JS::Context::URL.new("/play", location.href)
+
+      JS::Context::URL.to_js_ref.should eq("URL")
+      location.to_js_ref.should eq("window.location")
+      location.href.to_js_ref.should eq("window.location.href")
+      location.origin.to_js_ref.should eq("window.location.origin")
+      url.to_js_ref.should eq("new URL(\"/play\", window.location.href)")
+      url.href.to_js_ref.should eq("new URL(\"/play\", window.location.href).href")
+      url.origin.to_js_ref.should eq("new URL(\"/play\", window.location.href).origin")
+      url.pathname.to_js_ref.should eq("new URL(\"/play\", window.location.href).pathname")
+    end
+
+    it "rejects invalid URL constructor argument types" do
+      source = <<-CR
+      require "./src/js"
+
+      class InvalidURLCode < JS::Code
+        def_to_js strict: true do
+          URL.new(123)
+        end
+      end
+
+      puts InvalidURLCode.to_js
+      CR
+
+      exit_code, _stdout, stderr = crystal_eval(source)
+      exit_code.should_not eq(0)
+      stderr.should contain("URL.new arguments must be strings or typed browser string values.")
     end
   end
 end

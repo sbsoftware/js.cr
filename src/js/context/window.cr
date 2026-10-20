@@ -1,5 +1,6 @@
 require "./context_object"
 require "./event_target"
+require "./location"
 require "./timer_handle"
 require "./undefined"
 
@@ -11,6 +12,10 @@ module JS
     class Window < JS::Context::EventTarget
       def initialize
         super("window")
+      end
+
+      def location : JS::Context::Location
+        JS::Context::Location.new("#{to_js_ref}.location")
       end
 
       def setTimeout(callback : JS::Context::TimerCallback, delay : JS::Context::TimerDelay) : JS::Context::TimerHandle
