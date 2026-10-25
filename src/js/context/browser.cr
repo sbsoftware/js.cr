@@ -1,6 +1,8 @@
 require "./console"
 require "./document"
+require "./http"
 require "./navigator"
+require "./service_worker"
 require "./window"
 
 module JS
@@ -20,6 +22,18 @@ module JS
 
       def document : JS::Context::Document
         JS::Context::Document.new
+      end
+
+      def fetch(input : JS::Context::RequestInput) : JS::Context::Promise(JS::Context::Response)
+        JS::Context::Promise(JS::Context::Response).new("", "fetch", input)
+      end
+
+      def service_worker : JS::Context::ServiceWorkerGlobalScope
+        JS::Context::ServiceWorkerGlobalScope.new("")
+      end
+
+      def caches : JS::Context::CacheStorage
+        service_worker.caches
       end
 
       macro method_missing(call)
