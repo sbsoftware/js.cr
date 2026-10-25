@@ -1,4 +1,5 @@
 require "./context_object"
+require "./service_worker"
 require "./undefined"
 
 module JS
@@ -20,6 +21,11 @@ module JS
                     {text: text}
                   end
         JS::Context::Undefined.new(to_js_ref, "share", payload)
+      end
+
+      def serviceWorker : JS::Context::ServiceWorkerContainer?
+        # Service workers are unavailable in some browser contexts, so retain feature-detection semantics.
+        JS::Context::ServiceWorkerContainer.new("#{to_js_ref}.serviceWorker").as(JS::Context::ServiceWorkerContainer?)
       end
     end
   end
