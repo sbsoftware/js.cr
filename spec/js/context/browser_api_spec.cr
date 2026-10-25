@@ -71,6 +71,26 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictFetchCode < JS::Code
+    def_to_js strict: true do
+      request = Request.new("/manifest.json", method: "GET", mode: "same-origin", credentials: "same-origin", cache: "no-store", headers: {"Accept" => "application/json"})
+      response = await(fetch(request))
+      content_type = response.headers.get("Content-Type")
+      copy = response.clone._call
+      manifest = await(response.json._call)
+      body = await(response.text._call)
+      all = await(Promise.all([response.json._call, copy.text._call]))
+      console.log(response.ok, request.url, request.method, request.mode, request.headers, content_type, manifest, body, all)
+    end
+  end
+
+  class StrictFallbackResponseCode < JS::Code
+    def_to_js strict: true do
+      fallback = Response.new("Offline", status: 503, headers: {"Content-Type" => "text/plain"})
+      console.log(fallback)
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -201,6 +221,71 @@ module JS::Context::BrowserAPISpec
       element.removeAttribute("hidden").to_js_ref.should eq("document.querySelector(\"#container\").removeAttribute(\"hidden\")")
       element.appendChild(child).to_js_ref.should eq("document.querySelector(\"#container\").appendChild(document.querySelector(\".item\"))")
       element.removeChild(child).to_js_ref.should eq("document.querySelector(\"#container\").removeChild(document.querySelector(\".item\"))")
+    end
+  end
+
+  describe "strict fetch APIs" do
+    it "transpiles requests, response inspection, body parsing, and Promise.all" do
+      expected = <<-JS.squish
+      var request;
+      var response;
+      var content_type;
+      var copy;
+      var manifest;
+      var body;
+      var all;
+      request = new Request("/manifest.json", {method: "GET", mode: "same-origin", credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}});
+      response = await fetch(request);
+      content_type = response.headers.get("Content-Type");
+      copy = response.clone();
+      manifest = await response.json();
+      body = await response.text();
+      all = await Promise.all([response.json(), copy.text()]);
+      console.log(response.ok, request.url, request.method, request.mode, request.headers, content_type, manifest, body, all);
+      JS
+
+      StrictFetchCode.to_js.should eq(expected)
+    end
+
+    it "transpiles fallback response options with browser-compatible keys" do
+      expected = <<-JS.squish
+      var fallback;
+      fallback = new Response("Offline", {status: 503, headers: {"Content-Type": "text/plain"}});
+      console.log(fallback);
+      JS
+
+      StrictFallbackResponseCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "typed HTTP wrappers" do
+    it "builds constructor option objects and response calls" do
+      request_options = JS::Context::RequestOptions.new(method: JS::Context::RequestMethod::Get, mode: JS::Context::RequestMode::SameOrigin, credentials: JS::Context::RequestCredentials::SameOrigin, cache: JS::Context::RequestCache::NoStore)
+      response_options = JS::Context::ResponseOptions.new(status: 503, headers: {"Content-Type" => "text/plain"})
+      request = JS::Context::Request.new("/page", method: JS::Context::RequestMethod::Get, credentials: JS::Context::RequestCredentials::SameOrigin, cache: JS::Context::RequestCache::NoStore)
+      response = JS::Context::Response.new("Offline", status: 503, headers: {"Content-Type" => "text/plain"})
+
+      request_options.to_js_ref.should eq(%({method: "GET", mode: "same-origin", credentials: "same-origin", cache: "no-store"}))
+      response_options.to_js_ref.should eq(%({status: 503, headers: {"Content-Type": "text/plain"}}))
+      JS::Context::Request.new("/page", request_options).to_js_ref.should eq(%(new Request("/page", {method: "GET", mode: "same-origin", credentials: "same-origin", cache: "no-store"})))
+      JS::Context::Response.new("Offline", response_options).to_js_ref.should eq(%(new Response("Offline", {status: 503, headers: {"Content-Type": "text/plain"}})))
+      request.to_js_ref.should eq(%(new Request("/page", {method: "GET", credentials: "same-origin", cache: "no-store"})))
+      request.headers.get("Accept").to_js_ref.should eq(%(new Request("/page", {method: "GET", credentials: "same-origin", cache: "no-store"}).headers.get("Accept")))
+      response.to_js_ref.should eq(%(new Response("Offline", {status: 503, headers: {"Content-Type": "text/plain"}})))
+      response.clone.to_js_ref.should eq(%(new Response("Offline", {status: 503, headers: {"Content-Type": "text/plain"}}).clone()))
+      response.json.to_js_ref.should eq(%(new Response("Offline", {status: 503, headers: {"Content-Type": "text/plain"}}).json()))
+      JS::Context.default.fetch(request).to_js_ref.should eq(%(fetch(new Request("/page", {method: "GET", credentials: "same-origin", cache: "no-store"}))))
+      JS::Context.default.fetch("/page").to_js_ref.should eq(%(fetch("/page")))
+      JS::Context::Promise(JS::Context::Response).all([JS::Context.default.fetch("/page")]).to_js_ref.should eq(%(Promise.all([fetch("/page")])))
+    end
+
+    it "supports mutable headers" do
+      headers = JS::Context::Headers.new({"Accept" => "application/json"})
+
+      headers.to_js_ref.should eq(%(new Headers({"Accept": "application/json"})))
+      headers.set("X-Test", "yes").to_js_ref.should eq(%(new Headers({"Accept": "application/json"}).set("X-Test", "yes")))
+      headers.append("Vary", "Accept").to_js_ref.should eq(%(new Headers({"Accept": "application/json"}).append("Vary", "Accept")))
+      headers.delete("X-Test").to_js_ref.should eq(%(new Headers({"Accept": "application/json"}).delete("X-Test")))
     end
   end
 end

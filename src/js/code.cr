@@ -161,9 +161,23 @@ module JS
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                 {{arg}}
               end
-              {% if index < exp.args.size - 1 %}
+              {% if index < exp.args.size - 1 || !exp.named_args.is_a?(Nop) %}
                 {{io}} << ", "
               {% end %}
+            {% end %}
+            {% unless exp.named_args.is_a?(Nop) %}
+              {{io}} << "{"
+              {% for named_arg, index in exp.named_args %}
+                {{io}} << {{named_arg.name.stringify}}
+                {{io}} << ": "
+                JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+                  {{named_arg.value}}
+                end
+                {% if index < exp.named_args.size - 1 %}
+                  {{io}} << ", "
+                {% end %}
+              {% end %}
+              {{io}} << "}"
             {% end %}
             {{io}} << ")"
           {% elsif exp.is_a?(Call) && exp.name.stringify == "[]" %}
@@ -354,7 +368,11 @@ module JS
           {% elsif exp.is_a?(HashLiteral) || exp.is_a?(NamedTupleLiteral) %}
             {{io}} << "{"
             {% for key, i in exp.keys %}
-              {{io}} << {{key.id.stringify}}
+              {% if key.is_a?(StringLiteral) && !(key.stringify =~ /^"[A-Za-z_$][A-Za-z0-9_$]*"$/) %}
+                {{io}} << {{key.stringify}}
+              {% else %}
+                {{io}} << {{key.id.stringify}}
+              {% end %}
               {{io}} << ": "
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                 {{exp[key]}}
