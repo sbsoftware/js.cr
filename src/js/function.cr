@@ -22,7 +22,7 @@ module JS
       end
     end
 
-    macro def_to_js(name, async = false, &blk)
+    macro def_to_js(name, async = false, context = :browser, &blk)
       def self.function_name
         {% if name.is_a?(StringLiteral) || name.is_a?(Symbol) %}
           {{name.id.stringify}}
@@ -40,7 +40,7 @@ module JS
         JS::Code._eval_js_block(
           io,
           {{@type.resolve}},
-          {inline: false, nested_scope: true, strict: false, declared_vars: [] of String}
+          {inline: false, nested_scope: true, strict: false, context: {{context}}, declared_vars: [] of String}
         ) {{blk}}
         io << "}"
       end
