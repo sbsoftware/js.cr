@@ -11,6 +11,7 @@ An experimental tool to generate JavaScript code from Crystal code.
     * [`async` / `await`](#async--await)
     * [Strict Mode (opt-in)](#strict-mode-opt-in)
   * [Browser API Wrappers](#browser-api-wrappers)
+  * [Sets](#sets)
   * [Functions](#javascript-functions)
   * [Classes](#javascript-classes)
   * [Files](#javascript-files)
@@ -158,6 +159,23 @@ Use this pattern for additional browser APIs:
    - verify JS output from wrapper calls;
    - verify typed return wrappers and their `to_js_ref` output;
    - verify strict mode acceptance when wrappers are used.
+
+### Sets
+
+The top-level `Set` wrapper emits JavaScript's native `Set` constructor and methods. Use `Array.from(set)` when an array is needed and spread syntax would add no value.
+
+```crystal
+class UniqueURLsCode < JS::Code
+  def_to_js strict: true do
+    urls = Set.new(initial_urls)
+    urls.add(url)
+    present = urls.has(url)
+    array = Array.from(urls)
+  end
+end
+```
+
+JavaScript `Set` membership uses SameValueZero equality, while Crystal's standard-library `Set` uses value-based `==` and hash semantics. Calls inside `def_to_js` blocks generate JavaScript and therefore follow JavaScript behavior; Crystal code outside those blocks retains the standard-library behavior.
 
 ### JavaScript Functions
 
