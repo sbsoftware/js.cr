@@ -1,6 +1,7 @@
 require "./console"
 require "./document"
 require "./navigator"
+require "./performance"
 require "./window"
 
 module JS
@@ -20,6 +21,10 @@ module JS
 
       def document : JS::Context::Document
         JS::Context::Document.new
+      end
+
+      def performance : JS::Context::Performance
+        JS::Context::Performance.new
       end
 
       macro method_missing(call)
