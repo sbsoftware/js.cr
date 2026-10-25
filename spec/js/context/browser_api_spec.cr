@@ -16,6 +16,19 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictServiceWorkerCode < JS::Code
+    def_to_js strict: true do
+      container = navigator.serviceWorker
+      if container
+        registration = await(container.ready)
+        worker = registration.active || registration.waiting || registration.installing
+        worker.postMessage({type: "refresh", manifest: "/manifest.json"}) if worker
+        container.register("/service-worker.js", scope: "/wordgame/", type: "module", updateViaCache: "none")
+        console.log(container.controller) if container.controller
+      end
+    end
+  end
+
   class StrictReceiverlessWindowTimersCode < JS::Code
     def_to_js strict: true do
       timer = setTimeout(-> {
@@ -106,6 +119,42 @@ module JS::Context::BrowserAPISpec
       JS
 
       StrictNavigatorShareCode.to_js.should eq(expected)
+    end
+
+    it "transpiles service worker feature detection, selection, registration, and posting" do
+      expected = <<-JS.squish
+      var container;
+      container = navigator.serviceWorker;
+      if (container) {
+        registration = await container.ready;
+        worker = (registration.active || registration.waiting) || registration.installing;
+        if (worker) {
+          worker.postMessage({type: "refresh", manifest: "/manifest.json"});
+        }
+        container.register("/service-worker.js", {scope: "/wordgame/", type: "module", updateViaCache: "none"});
+        if (container.controller) {
+          console.log(container.controller);
+        }
+      }
+      JS
+
+      StrictServiceWorkerCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "typed service worker wrappers" do
+    it "exposes promise, registration state, controller, and message references" do
+      container = JS::Context.default.navigator.serviceWorker.not_nil!
+      registration = JS::Context::ServiceWorkerRegistration.new("registration")
+      worker = registration.active || registration.waiting || registration.installing
+
+      container.ready.to_js_ref.should eq("navigator.serviceWorker.ready")
+      container.register("/service-worker.js").to_js_ref.should eq(%(navigator.serviceWorker.register("/service-worker.js")))
+      container.register("/service-worker.js", scope: "/app/").to_js_ref.should eq(%(navigator.serviceWorker.register("/service-worker.js", {scope: "/app/"})))
+      container.controller.not_nil!.to_js_ref.should eq("navigator.serviceWorker.controller")
+      registration.waiting.not_nil!.to_js_ref.should eq("registration.waiting")
+      registration.installing.not_nil!.to_js_ref.should eq("registration.installing")
+      worker.postMessage({type: "refresh", manifest: "/manifest.json"}).to_js_ref.should eq(%(registration.active.postMessage({type: "refresh", manifest: "/manifest.json"}))) if worker
     end
   end
 
