@@ -71,6 +71,16 @@ module JS::Context::BrowserAPISpec
     end
   end
 
+  class StrictPerformanceResourcesCode < JS::Code
+    def_to_js strict: true do
+      performance.getEntriesByType("resource").forEach do |entry|
+        if ["script", "link", "css"].includes(entry.initiatorType)
+          console.log(entry.name)
+        end
+      end
+    end
+  end
+
   describe "strict browser context timer calls" do
     it "transpiles window.setTimeout and window.clearTimeout in strict mode" do
       expected = <<-JS.squish
@@ -182,6 +192,37 @@ module JS::Context::BrowserAPISpec
       JS::Context.default.window.addEventListener("click", listener).to_js_ref.should eq("window.addEventListener(\"click\", handleClick)")
       JS::Context.default.document.removeEventListener("click", listener, true).to_js_ref.should eq("document.removeEventListener(\"click\", handleClick, true)")
       JS::Context::Element.new("document", "querySelector", "button").dispatchEvent(event).to_js_ref.should eq("document.querySelector(\"button\").dispatchEvent(new Event(\"click\", {bubbles: true, cancelable: true}))")
+    end
+  end
+
+  describe "strict performance resource calls" do
+    it "transpiles resource enumeration and initiator-type filtering in strict mode" do
+      expected = <<-JS.squish
+      performance.getEntriesByType("resource").forEach(function(entry) {
+        if (["script", "link", "css"].includes(entry.initiatorType)) {
+          console.log(entry.name);
+        }
+      });
+      JS
+
+      StrictPerformanceResourcesCode.to_js.should eq(expected)
+    end
+  end
+
+  describe "typed performance wrappers" do
+    it "types resource entries and their required properties" do
+      entries = JS::Context.default.performance.getEntriesByType("resource")
+      entry = JS::Context::PerformanceResourceTiming.new("entry")
+
+      entries.should be_a(JS::Context::PerformanceEntryList(JS::Context::PerformanceResourceTiming))
+      entries.to_js_ref.should eq("performance.getEntriesByType(\"resource\")")
+      entry.name.should be_a(JS::Context::PerformanceString)
+      entry.name.to_js_ref.should eq("entry.name")
+      entry.entryType.to_js_ref.should eq("entry.entryType")
+      entry.startTime.to_js_ref.should eq("entry.startTime")
+      entry.duration.to_js_ref.should eq("entry.duration")
+      entry.initiatorType.should be_a(JS::Context::PerformanceString)
+      entry.initiatorType.to_js_ref.should eq("entry.initiatorType")
     end
   end
 
