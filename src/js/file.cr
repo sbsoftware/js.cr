@@ -66,24 +66,24 @@ module JS
       end
     end
 
-    macro js_fragment(strict = false, &blk)
-      _register_js_fragment({{@type}}, strict: {{strict}}) {{blk}}
+    macro js_fragment(strict = false, context = :browser, &blk)
+      _register_js_fragment({{@type}}, strict: {{strict}}, context: {{context}}) {{blk}}
     end
 
-    macro def_to_js(strict = false, &blk)
-      _register_js_fragment({{@type}}, strict: {{strict}}) {{blk}}
+    macro def_to_js(strict = false, context = :browser, &blk)
+      _register_js_fragment({{@type}}, strict: {{strict}}, context: {{context}}) {{blk}}
     end
 
-    macro def_to_js(namespace, strict = false, &blk)
-      _register_js_fragment({{namespace}}, strict: {{strict}}) {{blk}}
+    macro def_to_js(namespace, strict = false, context = :browser, &blk)
+      _register_js_fragment({{namespace}}, strict: {{strict}}, context: {{context}}) {{blk}}
     end
 
-    macro _register_js_fragment(namespace, strict = false, &blk)
+    macro _register_js_fragment(namespace, strict = false, context = :browser, &blk)
       @@js_fragments << ->(io : IO) do
         JS::Code._eval_js_block(
           io,
           {{namespace}},
-          {inline: false, nested_scope: true, strict: {{strict}}, declared_vars: [] of String}
+          {inline: false, nested_scope: true, strict: {{strict}}, context: {{context}}, declared_vars: [] of String}
         ) {{blk}}
       end
     end

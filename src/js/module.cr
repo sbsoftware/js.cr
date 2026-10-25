@@ -13,8 +13,8 @@ module JS
       @@js_imports << ("import { {{names.map(&.id).splat}} } from \"" + {{from}} + "\";")
     end
 
-    macro def_to_js(strict = false, &blk)
-      JS::File.def_to_js({{@type}}, strict: {{strict}}) {{blk}}
+    macro def_to_js(strict = false, context = :browser, &blk)
+      JS::File.def_to_js({{@type}}, strict: {{strict}}, context: {{context}}) {{blk}}
     end
   end
 end
