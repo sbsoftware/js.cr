@@ -88,4 +88,28 @@ module JS::Code::OperatorSpec
       ComplexChainedOperatorReceiverCode.to_js.should eq(expected)
     end
   end
+
+  class LogicalOperatorCode < JS::Code
+    CSS_CLASS = "crumble--material--context-menu--menu-active"
+
+    def_to_js do
+      calls = 0
+      translated = false || CSS_CLASS.to_js_ref
+      nested = false || true && CSS_CLASS.to_js_ref == "crumble--material--context-menu--menu-active"
+      false && (calls = calls + 1)
+      true || (calls = calls + 1)
+      console.log(JSON.stringify({translated: translated, nested: nested, calls: calls}))
+    end
+  end
+
+  describe "LogicalOperatorCode.to_js" do
+    it "recursively translates logical operands and preserves short-circuit behavior" do
+      stdout = IO::Memory.new
+      stderr = IO::Memory.new
+      status = Process.run("node", ["-e", LogicalOperatorCode.to_js], output: stdout, error: stderr)
+
+      status.success?.should be_true, stderr.to_s
+      stdout.to_s.chomp.should eq(%({"translated":"crumble--material--context-menu--menu-active","nested":true,"calls":0}))
+    end
+  end
 end
