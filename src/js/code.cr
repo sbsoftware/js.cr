@@ -61,7 +61,38 @@ module JS
       {% end %}
 
       {% for exp in exps %}
-          {% if exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) %}
+          {% if exp.is_a?(And) || exp.is_a?(Or) %}
+            # Logical operators have dedicated AST nodes, so recursively emit both operands instead of
+            # stringifying the node and leaving Crystal-derived values untranslated.
+            {% left_expression = exp.left.is_a?(Expressions) && exp.left.expressions.size == 1 ? exp.left.expressions.first : nil %}
+            {% right_expression = exp.right.is_a?(Expressions) && exp.right.expressions.size == 1 ? exp.right.expressions.first : nil %}
+            {% left_needs_grouping = exp.left.is_a?(Assign) || (exp.left.is_a?(Expressions) && !(left_expression.is_a?(And) || left_expression.is_a?(Or))) %}
+            {% right_needs_grouping = exp.right.is_a?(Assign) || (exp.right.is_a?(Expressions) && !(right_expression.is_a?(And) || right_expression.is_a?(Or))) %}
+            {{io}} << "("
+            {% if left_needs_grouping %}
+              {{io}} << "("
+            {% end %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.left}}
+            end
+            {% if left_needs_grouping %}
+              {{io}} << ")"
+            {% end %}
+            {{io}} << {{exp.is_a?(And) ? " && " : " || "}}
+            {% if right_needs_grouping %}
+              {{io}} << "("
+            {% end %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{exp.right}}
+            end
+            {% if right_needs_grouping %}
+              {{io}} << ")"
+            {% end %}
+            {{io}} << ")"
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
+          {% elsif exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) %}
             {% declaration_kind = exp.name.stringify %}
             {% if exp.args.empty? %}
               {% if declaration_kind == "let" %}
@@ -389,11 +420,12 @@ module JS
               {% end %}
               {{io}} << ")"
             {% else %}
-              {{io}} << "if ("
+              {% logical_condition = exp.cond.is_a?(And) || exp.cond.is_a?(Or) %}
+              {{io}} << {{logical_condition ? "if " : "if ("}}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                 {{exp.cond}}
               end
-              {{io}} << ") {"
+              {{io}} << {{logical_condition ? " {" : ") {"}}
               JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: false, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
                 {{exp.then}}
               end
