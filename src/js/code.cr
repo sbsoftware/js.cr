@@ -61,7 +61,27 @@ module JS
       {% end %}
 
       {% for exp in exps %}
-          {% if exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) %}
+          {% if exp.is_a?(Not) %}
+            {{io}} << "!"
+            # Negation binds more tightly than infix and conditional expressions,
+            # so preserve their grouping while recursively translating the operand.
+            {% not_operand = exp.exp %}
+            {% not_candidate = not_operand.is_a?(Expressions) && not_operand.expressions.size == 1 ? not_operand.expressions.first : not_operand %}
+            {% not_call_operator = not_candidate.is_a?(Call) && not_candidate.args.size == 1 && OPERATOR_CALL_NAMES.includes?(not_candidate.name.stringify) %}
+            {% not_needs_grouping = not_call_operator || not_candidate.is_a?(And) || not_candidate.is_a?(Or) || not_candidate.is_a?(If) %}
+            {% if not_needs_grouping %}
+              {{io}} << "("
+            {% end %}
+            JS::Code._eval_js_block({{io}}, {{namespace}}, {inline: true, nested_scope: false, strict: {{opts[:strict]}}, declared_vars: {{scope_declared_vars.empty? ? "[] of String".id : scope_declared_vars}}}) do {{blk.args.empty? ? "".id : "|#{blk.args.splat}|".id}}
+              {{not_operand}}
+            end
+            {% if not_needs_grouping %}
+              {{io}} << ")"
+            {% end %}
+            {% if !opts[:inline] %}
+              {{io}} << ";"
+            {% end %}
+          {% elsif exp.is_a?(Call) && !exp.receiver && VARIABLE_DECLARATION_CALL_NAMES.includes?(exp.name.stringify) %}
             {% declaration_kind = exp.name.stringify %}
             {% if exp.args.empty? %}
               {% if declaration_kind == "let" %}
